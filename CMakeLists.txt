@@ -45,7 +45,7 @@ else()
 endif()
 
 target_include_directories(sniffer PRIVATE ./NpCap/Include)
-target_link_directories(sniffer PRIVATE ./NpCap/Lib)
+target_link_directories(sniffer PRIVATE ./NpCap/Lib/x64)
 target_link_libraries(sniffer PRIVATE Packet wpcap Ws2_32)
 
 target_link_libraries(sniffer PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
