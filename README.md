@@ -28,3 +28,6 @@
 
    注意用自己的qt路径（
 
+4. qt界面程序和命令行不兼容，只有在qtcreator里可以命令行输出，所有ide都不能命令行输入。
+
+   如果想用命令行先把cmakelists里有关qt的都注释了先。已经做好了，见cmakelists-cmd.txt。
