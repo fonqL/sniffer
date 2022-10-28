@@ -123,6 +123,8 @@ struct udp_header {
     uint16_t checksum;
 };
 
+//应用层类型的判断要靠端口。。源端口与目的端口都要判断。。
+//长度也是靠tcp/udp里的长度判断
 struct dns_packet {
     uint16_t id;
     struct flag_t {
@@ -177,6 +179,6 @@ static_assert(sizeof(eth_header) == 14);
 static_assert(sizeof(arp_header) == 28);
 static_assert(sizeof(ipv4_header) == 20);
 static_assert(sizeof(ipv6_header) == 40);
-static_assert(sizeof(tcp_header) == 20);
 static_assert(sizeof(icmp_packet) == 8);
+static_assert(sizeof(tcp_header) == 20);
 static_assert(sizeof(dns_packet) == 12);
