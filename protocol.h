@@ -6,26 +6,24 @@
 #include <stdint.h>
 #include <string_view>
 
-//ip协议规定大端传输，记得从网络上来的字节要看情况转大小端。
-//比如ip地址和mac地址不用，但是端口号要转
-
 struct eth_header {
-    enum proto_t : uint16_t {
-        IPv4 = 0x0800,
+    enum proto_t : uint16_t { //指定实现枚举的数据类型，正常使用即可，可以忽略
+        IPv4 = 0x0800,        //外界获取的例子：eth_header::IPv4
         ARP = 0x0806,
         IPv6 = 0x86DD
     };
 
-    uint8_t dst[6]; //mac不需要考虑大小端
+    uint8_t dst[6];
     uint8_t src[6];
-    union {
+    union {           //共用一块内存
         uint16_t len; // < 1536
         proto_t type; // >= 1536
     };
 };
 //外部如果用eth_header::proto_t这么长一串觉得不舒服可以自己用using/typedef起个别名
 
-struct arp_packet { //arp不携带信息了
+//不携带变长数据，命名为packet
+struct arp_packet {
     uint16_t hardware_type;
     uint16_t proto_type;
     uint8_t mac_len; // = 6
@@ -46,7 +44,7 @@ struct ipv4_header {
         IPv6 = 41
     };
 
-    uint8_t version : 4;
+    uint8_t version : 4; //位域，此成员变量只占4位（虽然是uint8_t）
     uint8_t header_len : 4;
     uint8_t ds; //旧称tos
     uint16_t len;
@@ -58,9 +56,9 @@ struct ipv4_header {
     uint8_t ttl;
     proto_t proto;
     uint16_t checksum;
-    uint8_t src[4]; //不考虑大小端
+    uint8_t src[4];
     uint8_t dst[4];
-    uint8_t op[]; //最多40 Byte
+    uint8_t op[]; //不占空间的变长成员变量，搜索：长度为0的数组
 };
 
 struct ipv6_header {
@@ -149,54 +147,54 @@ struct dns_packet {
     uint8_t data[];
 };
 
-enum class query_t : uint8_t { //查询的资源记录类型。
-    A = 0x01,                  //指定计算机 IP 地址。
-    NS = 0x02,                 //指定用于命名区域的 DNS 名称服务器。
-    MD = 0x03,                 //指定邮件接收站（此类型已经过时了，使用MX代替）
-    MF = 0x04,                 //指定邮件中转站（此类型已经过时了，使用MX代替）
-    CNAME = 0x05,              //指定用于别名的规范名称。
-    SOA = 0x06,                //指定用于 DNS 区域的“起始授权机构”。
-    MB = 0x07,                 //指定邮箱域名。
-    MG = 0x08,                 //指定邮件组成员。
-    MR = 0x09,                 //指定邮件重命名域名。
-    NUL = 0x0A,                //指定空的资源记录
-    WKS = 0x0B,                //描述已知服务。
-    PTR = 0x0C,                //如果查询是 IP 地址，则指定计算机名；否则指定指向其它信息的指针。
-    HINFO = 0x0D,              //指定计算机 CPU 以及操作系统类型。
-    MINFO = 0x0E,              //指定邮箱或邮件列表信息。
-    MX = 0x0F,                 //指定邮件交换器。
-    TXT = 0x10,                //指定文本信息。
-    UINFO = 0x64,              //指定用户信息。
-    UID = 0x65,                //指定用户标识符。
-    GID = 0x66,                //指定组名的组标识符。
-    ANY = 0xFF                 //指定所有数据类型。
-};
+// enum class query_t : uint8_t { //查询的资源记录类型。
+//     A = 0x01,                  //指定计算机 IP 地址。
+//     NS = 0x02,                 //指定用于命名区域的 DNS 名称服务器。
+//     MD = 0x03,                 //指定邮件接收站（此类型已经过时了，使用MX代替）
+//     MF = 0x04,                 //指定邮件中转站（此类型已经过时了，使用MX代替）
+//     CNAME = 0x05,              //指定用于别名的规范名称。
+//     SOA = 0x06,                //指定用于 DNS 区域的“起始授权机构”。
+//     MB = 0x07,                 //指定邮箱域名。
+//     MG = 0x08,                 //指定邮件组成员。
+//     MR = 0x09,                 //指定邮件重命名域名。
+//     NUL = 0x0A,                //指定空的资源记录
+//     WKS = 0x0B,                //描述已知服务。
+//     PTR = 0x0C,                //如果查询是 IP 地址，则指定计算机名；否则指定指向其它信息的指针。
+//     HINFO = 0x0D,              //指定计算机 CPU 以及操作系统类型。
+//     MINFO = 0x0E,              //指定邮箱或邮件列表信息。
+//     MX = 0x0F,                 //指定邮件交换器。
+//     TXT = 0x10,                //指定文本信息。
+//     UINFO = 0x64,              //指定用户信息。
+//     UID = 0x65,                //指定用户标识符。
+//     GID = 0x66,                //指定组名的组标识符。
+//     ANY = 0xFF                 //指定所有数据类型。
+// };
 
-enum class query_class : uint8_t { //指定信息的协议组。
-    IN = 0x01,                     //指定 Internet 类别。
-    CSNET = 0x02,                  //指定 CSNET 类别。（已过时）
-    CHAOS = 0x03,                  //指定 Chaos 类别。
-    HESIOD = 0x04,                 //指定 MIT Athena Hesiod 类别。
-    ANY = 0xFF                     //指定任何以前列出的通配符。
-};
+// enum class query_class : uint8_t { //指定信息的协议组。
+//     IN = 0x01,                     //指定 Internet 类别。
+//     CSNET = 0x02,                  //指定 CSNET 类别。（已过时）
+//     CHAOS = 0x03,                  //指定 Chaos 类别。
+//     HESIOD = 0x04,                 //指定 MIT Athena Hesiod 类别。
+//     ANY = 0xFF                     //指定任何以前列出的通配符。
+// };
 
-static_assert(sizeof(eth_header) == 14);
+static_assert(sizeof(eth_header) == 14); //验证
 static_assert(sizeof(arp_packet) == 28);
 static_assert(sizeof(ipv4_header) == 20);
 static_assert(sizeof(ipv6_header) == 40);
 static_assert(sizeof(icmp_packet) == 8);
 static_assert(sizeof(tcp_header) == 20);
+static_assert(sizeof(udp_header) == 8);
 static_assert(sizeof(dns_packet) == 12);
 
-//反射部分
-#define STR(str) #str
+#define STR(str) #str // STR(abc) == "abc"
 
 #define REFLECT(type)    \
     template<typename R> \
     R get(const type& x, std::string_view str)
 
 #define FIELD(field) \
-    if (str == STR(field)) return reinterpret_cast<R>(x.field)
+    if (str == STR(field)) return (R)(x.field)
 
 REFLECT(eth_header) {
     FIELD(dst);
