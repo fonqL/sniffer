@@ -45,6 +45,8 @@
 {
    4. 过滤器：格式：协议.字段[.字段] 运算符 值。比如 ip.src == "123.456.789.000"
    用上各协议的索引容器。
+   可以用正则表达式来解析。std::regex。
+   也可以用qt的正则。随便
    函数接口大致为：vector<uint_t> fun(const vector<vector<any>>& packets, const vector<uint_t>& indexs)
 }
 
@@ -53,8 +55,16 @@
 注意因为不可能实现所有的协议（比如http都懒得写了），所以展示的话直接用个unknown protocal之类的作为一个默认备选项
 这个交给界面来处理
 
+技巧:
+
 如果觉得uint_t太丑了可以typedef uint_t uint或using uint = uint_t
 
+头文件和cpp文件分不分离我认为无所谓
+但是如果在头文件定义的话要加个inline：
+inline f() {}
+不然会报错
+
+函数先搜搜c++里有没有再自己实现（严格来说是标准库里有没有
 
 
 
