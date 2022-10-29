@@ -187,6 +187,8 @@ static_assert(sizeof(tcp_header) == 20);
 static_assert(sizeof(udp_header) == 8);
 static_assert(sizeof(dns_packet) == 12);
 
+//
+
 #define STR(str) #str // STR(abc) == "abc"
 
 #define REFLECT(type)    \
