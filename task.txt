@@ -48,6 +48,8 @@
    可以用正则表达式来解析。std::regex。
    也可以用qt的正则。随便
    函数接口大致为：vector<uint_t> fun(const vector<vector<any>>& packets, const vector<uint_t>& indexs)
+
+   捕获过滤器也是支持的，界面记得留个功能。具体实现丢给底层（1,2）
 }
 
 5. 统计：各索引容器的大小即可
