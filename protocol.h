@@ -1,9 +1,13 @@
 #pragma once
 #pragma warning(disable : 4200)
 
+#include <any>
+#include <map>
 #include <stdint.h>
+#include <string_view>
 
-//ip协议规定大端传输
+//ip协议规定大端传输，记得从网络上来的字节要看情况转大小端。
+//比如ip地址和mac地址不用，但是端口号要转
 
 struct eth_header {
     enum proto_t : uint16_t {
@@ -19,8 +23,9 @@ struct eth_header {
         proto_t type; // >= 1536
     };
 };
+//外部如果用eth_header::proto_t这么长一串觉得不舒服可以自己用using/typedef起个别名
 
-struct arp_header {
+struct arp_packet { //arp不携带信息了
     uint16_t hardware_type;
     uint16_t proto_type;
     uint8_t mac_len; // = 6
@@ -176,9 +181,120 @@ enum class query_class : uint8_t { //指定信息的协议组。
 };
 
 static_assert(sizeof(eth_header) == 14);
-static_assert(sizeof(arp_header) == 28);
+static_assert(sizeof(arp_packet) == 28);
 static_assert(sizeof(ipv4_header) == 20);
 static_assert(sizeof(ipv6_header) == 40);
 static_assert(sizeof(icmp_packet) == 8);
 static_assert(sizeof(tcp_header) == 20);
 static_assert(sizeof(dns_packet) == 12);
+
+//反射部分
+#define STR(str) #str
+
+#define REFLECT(type)    \
+    template<typename R> \
+    R get(const type& x, std::string_view str)
+
+#define FIELD(field) \
+    if (str == STR(field)) return reinterpret_cast<R>(x.field)
+
+REFLECT(eth_header) {
+    FIELD(dst);
+    FIELD(src);
+    FIELD(len);
+    FIELD(type);
+}
+
+REFLECT(arp_packet) {
+    FIELD(hardware_type);
+    FIELD(proto_type);
+    FIELD(mac_len);
+    FIELD(ip_len);
+    FIELD(op);
+    FIELD(src_mac);
+    FIELD(src_ip);
+    FIELD(dst_mac);
+    FIELD(dst_ip);
+}
+
+REFLECT(ipv4_header) {
+    FIELD(version);
+    FIELD(header_len);
+    FIELD(ds);
+    FIELD(len);
+    FIELD(id);
+    FIELD(df);
+    FIELD(mf);
+    FIELD(offset);
+    FIELD(ttl);
+    FIELD(proto);
+    FIELD(checksum);
+    FIELD(src);
+    FIELD(dst);
+    FIELD(op);
+}
+
+REFLECT(ipv6_header) {
+    FIELD(version);
+    FIELD(traffic_class);
+    FIELD(flow_label);
+    FIELD(payload_len);
+    FIELD(next_header);
+    FIELD(hop_limit);
+    FIELD(src);
+    FIELD(dst);
+    FIELD(header);
+}
+
+REFLECT(icmp_packet) {
+    FIELD(type);
+    FIELD(code);
+    FIELD(checksum);
+    FIELD(field);
+    FIELD(data);
+}
+
+REFLECT(tcp_header::flag_t) {
+    FIELD(cwr);
+    FIELD(ece);
+    FIELD(urg);
+    FIELD(ack);
+    FIELD(psh);
+    FIELD(rst);
+    FIELD(syn);
+    FIELD(fin);
+}
+
+REFLECT(tcp_header) {
+    FIELD(src);
+    FIELD(dst);
+    FIELD(seq);
+    FIELD(ack);
+    FIELD(len);
+    FIELD(flags);
+    FIELD(window_size);
+    FIELD(checksum);
+    FIELD(urgent_ptr);
+    FIELD(op);
+}
+
+REFLECT(udp_header) {
+    FIELD(src);
+    FIELD(dst);
+    FIELD(len);
+    FIELD(checksum);
+}
+
+REFLECT(dns_packet) {
+    FIELD(id);
+    FIELD(flags);
+    FIELD(questions);
+    FIELD(answer_rrs);
+    FIELD(authority_rrs);
+    FIELD(additional_rrs);
+    FIELD(data);
+}
+
+#undef FIELD
+#undef REFLECT
+#undef STR
