@@ -39,7 +39,8 @@
    3. listview，treeview：
    读取vector<vector<any>>，因为第一层协议必是以太帧，而下层协议字段里有上层协议的类型信息，所以类型信息足够了
    先仅提供给定字符串对同名字段的查询
-   负责展示，函数接口大致为: void fun(const vector<vector<any>>& packets, const vector<uint_t>& indexs) //和过滤器配合
+   负责展示.
+   这个接口不好设计，是调用方，需要的话可以往mainwindow里塞成员变量。
 }
 
 {
@@ -48,7 +49,7 @@
    可以用正则表达式来解析。std::regex。
    也可以用qt的正则。随便
    函数接口大致为：vector<uint_t> fun(const vector<vector<any>>& packets, const vector<uint_t>& indexs)
-
+   或者：bool fun(const vector<any>& packets)
    捕获过滤器也是支持的，界面记得留个功能。具体实现丢给底层（1,2）
 }
 
@@ -68,13 +69,15 @@ inline f() {}
 
 函数先搜搜c++里有没有再自己实现（严格来说是标准库里有没有
 
-
-
-
-
-
-
-
+有个注意事项：
+用无符号整数是因为负数在这些情况下是没意义的。
+不过循环递减时要注意一下坑：
+for(uint_t i = 10; i >= 0; i--) / uint i = 10; while(i >= 0) {...; i--;}
+是错误的写法，因为无符号不会出现i < 0的情况。0 - 1会循环到2^32 - 1。
+正确的写法：
+for(uint_t i = 11; i-- > 0;) / uint i = 11; while(i-- > 0) {...;}
+这时候后置--的作用就体现出来了
+坚持区间左闭右开一百年不动摇（
 
 
 
