@@ -1,7 +1,6 @@
 #include "pcap.h"
 #include "protocol.h"
 #include <QString>
-#include <WinSock2.h>
 #include <any>
 #include <stdexcept>
 #include <string_view>
@@ -25,19 +24,21 @@
 
 static constexpr std::string_view DEFAULT_FILENAME = "./cap";
 
-class pcap_wrapper { //todo支持文件类型
+class pcap_wrapper {
 private:
-    pcap_if_t info;
     pcap_t* src;
     pcap_dumper_t* file;
+    u_int netmask;
     bpf_program fcode;
 
 public:
-    pcap_wrapper(pcap_if_t* dev) {
-        memcpy(&info, dev, sizeof(*dev));
-
+    // info.addresses != nullptr
+    //     ? ((sockaddr_in*)(info.addresses->netmask))->sin_addr.S_un.S_addr
+    //     : 0xffffff;
+    pcap_wrapper(const char* name, u_int netmask)
+        : netmask(netmask) {
         char errbuf[PCAP_ERRBUF_SIZE];
-        src = pcap_open(dev->name,
+        src = pcap_open(name,
                         65536,
                         PCAP_OPENFLAG_PROMISCUOUS,
                         1000,
@@ -45,7 +46,7 @@ public:
                         errbuf);
         if (src == nullptr) throw std::runtime_error{errbuf};
 
-        if (pcap_datalink(src) != DLT_EN10MB) pcap_close(src), throw std::runtime_error{"only for Ethernet networks."};
+        if (pcap_datalink_ext(src) != DLT_EN10MB) pcap_close(src), throw std::runtime_error{"only for Ethernet networks."};
 
         file = pcap_dump_open(src, DEFAULT_FILENAME.data());
         if (file == nullptr) pcap_close(src), throw std::runtime_error{"pcap_dump_open"};
@@ -66,6 +67,10 @@ public:
     }
 
 public:
+    bool is_empty() const {
+        return src == nullptr;
+    }
+
     std::tuple<const pcap_pkthdr*, const u_char*> get_packet() {
         while (true) {
             pcap_pkthdr* header;
@@ -80,11 +85,13 @@ public:
 
     //返回语法检查结果。正确为true，错误为false
     bool set_filter(std::string_view filter) {
+        if (filter.size() >= PCAP_BUF_SIZE) throw std::overflow_error{"filter string too long"};
+
+        char buf[PCAP_BUF_SIZE] = {0};
+        filter.copy(buf, filter.size()); //copyto buf
+
         //todo 假设compile是无状态的。。错误后对src无影响。。待测试。。
-        int e = pcap_compile(src, &fcode, filter.data(), 1,
-                             info.addresses != nullptr
-                                 ? ((sockaddr_in*)(info.addresses->netmask))->sin_addr.S_un.S_addr
-                                 : 0xffffff); // fallback: C类地址
+        int e = pcap_compile(src, &fcode, buf, 1, netmask);
         if (e < 0)
             return false;
         e = pcap_setfilter(src, &fcode); //这里错误就没救了
@@ -106,27 +113,27 @@ public:
     }
 };
 
-class dev_list {
+class device_list {
 private:
     pcap_if_t* header;
 
 public:
-    dev_list() {
+    device_list() {
         char errbuf[PCAP_ERRBUF_SIZE];
         int e = pcap_findalldevs_ex(PCAP_SRC_IF_STRING, NULL, &header, errbuf);
         if (e == PCAP_ERROR) throw std::runtime_error{errbuf};
     }
 
-    dev_list(dev_list&& x)
+    device_list(device_list&& x)
         : header(x.header) {
         x.header = nullptr;
     }
 
-    dev_list(const dev_list&) = delete;
-    dev_list& operator=(const dev_list&) = delete;
-    dev_list& operator=(dev_list&& x) = delete;
+    device_list(const device_list&) = delete;
+    device_list& operator=(const device_list&) = delete;
+    device_list& operator=(device_list&& x) = delete;
 
-    ~dev_list() {
+    ~device_list() {
         if (header != nullptr)
             pcap_freealldevs(header);
     }
@@ -153,6 +160,23 @@ public:
         for (dev = header; i > 0; --i) {
             dev = dev->next;
         }
-        return {dev}; //todo 这里需要test
+        u_int netmask = dev->addresses != nullptr
+                            ? ((sockaddr_in*)(dev->addresses->netmask))->sin_addr.S_un.S_addr
+                            : 0xffffff; //fallback: C类地址
+        return {dev->name, netmask};    //todo 这里需要test
     }
 };
+
+pcap_wrapper open_file(std::string_view file_name) {
+    if (file_name.size() >= PCAP_BUF_SIZE) throw std::overflow_error("filename too long");
+
+    char source_name[PCAP_BUF_SIZE];
+    char errbuf[PCAP_ERRBUF_SIZE];
+    char raw_name[PCAP_BUF_SIZE] = {0};
+    file_name.copy(raw_name, file_name.size());
+
+    int e = pcap_createsrcstr(source_name, PCAP_SRC_FILE, nullptr, nullptr, raw_name, errbuf);
+    if (e != 0) throw std::runtime_error{"pcap_createsrcstr"};
+
+    return {source_name, 0xffffff};
+}
