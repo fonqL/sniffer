@@ -31,3 +31,6 @@
 4. qt界面程序和命令行不兼容，只有在qtcreator里可以命令行输出，所有ide都不能命令行输入。
 
    如果想用命令行先把cmakelists里有关qt的都注释了先。见cmakelists-cmd.txt。
+
+5. qt mingw报错：unrecognized command line option '-Zc:__cplusplus' and unrecognized command line option '-permissive-'
+   最容易解决的方式：qtcreator里创建一个项目，测试能不能跑起来，然后再用vscode试试能不能跑起来，如果都可以就把CMakeLists.txt.user复制过来（这是qtcreator里创建工程时创建来的）。这是重要信息。
