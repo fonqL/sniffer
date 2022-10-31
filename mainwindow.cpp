@@ -14,7 +14,7 @@ MainWindow::MainWindow(QWidget *parent)
     for(uint i = 0; i < x.size(); i++){
         ui->comboBox->addItem(x[i]);
     }
-    // 选中的下标
+    // 选中的下标,做成主页面类的成员变量了
     this->device_choose = 0;
 
     connect(ui->comboBox, &QComboBox::currentIndexChanged, this, [this](){
