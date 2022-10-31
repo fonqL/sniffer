@@ -1,26 +1,9 @@
-#include "pcap.h"
-#include "protocol.h"
 #include <QString>
 #include <any>
+#include <pcap.h>
 #include <stdexcept>
 #include <string_view>
 #include <vector>
-
-//
-// 使用例：
-// int main() try {
-//     dev_list devices;
-//     auto x = devices.to_strings();
-//     for (uint i = 0; i < x.size(); ++i)
-//         std::cout << i << ". " << x[i].toStdString() << '\n';
-//     uint i;
-//     std::cin >> i;
-//     std::cout << i << '\n';
-//     auto device = devices.open(i);
-//     device.capture();
-// } catch (std::exception& e) {
-//     std::cout << e.what() << std::endl;
-// }
 
 static constexpr std::string_view DEFAULT_FILENAME = "./cap";
 
@@ -46,7 +29,7 @@ public:
                         errbuf);
         if (src == nullptr) throw std::runtime_error{errbuf};
 
-        if (pcap_datalink_ext(src) != DLT_EN10MB) pcap_close(src), throw std::runtime_error{"only for Ethernet networks."};
+        if (pcap_datalink(src) != DLT_EN10MB) pcap_close(src), throw std::runtime_error{"only for Ethernet networks."};
 
         file = pcap_dump_open(src, DEFAULT_FILENAME.data());
         if (file == nullptr) pcap_close(src), throw std::runtime_error{"pcap_dump_open"};
@@ -66,11 +49,7 @@ public:
             pcap_dump_close(file), pcap_close(src);
     }
 
-public:
-    bool is_empty() const {
-        return src == nullptr;
-    }
-
+private:
     std::tuple<const pcap_pkthdr*, const u_char*> get_packet() {
         while (true) {
             pcap_pkthdr* header;
@@ -81,6 +60,11 @@ public:
             pcap_dump((u_char*)file, header, data);
             return {header, data};
         }
+    }
+
+public:
+    bool is_empty() const {
+        return src == nullptr;
     }
 
     //返回语法检查结果。正确为true，错误为false
@@ -99,7 +83,7 @@ public:
         return true;
     }
 
-    void capture() {
+    void capture() { //qthread
         while (true) {
             auto [header, data] = get_packet();
             char timestr[16];
@@ -109,6 +93,9 @@ public:
             strftime(timestr, sizeof(timestr), "%H:%M:%S", &ltime);
 
             printf("%s,%.6ld len:%d\n", timestr, header->ts.tv_usec, header->len);
+
+            std::vector<std::any> headers;
+            f(data, data + header->len, headers);
         }
     }
 };
@@ -167,7 +154,7 @@ public:
     }
 };
 
-pcap_wrapper open_file(std::string_view file_name) {
+inline pcap_wrapper open_file(std::string_view file_name) {
     if (file_name.size() >= PCAP_BUF_SIZE) throw std::overflow_error("filename too long");
 
     char source_name[PCAP_BUF_SIZE];
