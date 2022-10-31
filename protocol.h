@@ -1,8 +1,6 @@
 #pragma once
 #pragma warning(disable : 4200)
 
-#include <any>
-#include <map>
 #include <stdint.h>
 #include <string_view>
 
@@ -29,7 +27,7 @@ struct arp_packet {
     uint8_t mac_len; // = 6
     uint8_t ip_len;  // = 4
     uint16_t op;
-    uint8_t src_mac[6];
+    uint8_t src_mac[6]; //直接0~5输出就是正确的mac地址
     uint8_t src_ip[4];
     uint8_t dst_mac[6];
     uint8_t dst_ip[4];
@@ -44,8 +42,9 @@ struct ipv4_header {
         IPv6 = 41
     };
 
-    uint8_t version : 4; //位域，此成员变量只占4位（虽然是uint8_t）
-    uint8_t header_len : 4;
+    uint8_t header_len : 4; //位域，此成员变量只占4位（虽然是uint8_t）
+    uint8_t version : 4;    //version的bit位高于headerlen （编译器相关，msvc
+
     uint8_t ds; //旧称tos
     uint16_t len;
     uint16_t id;
@@ -56,7 +55,7 @@ struct ipv4_header {
     uint8_t ttl;
     proto_t proto;
     uint16_t checksum;
-    uint8_t src[4];
+    uint8_t src[4]; //inet_ntop 转成字符串
     uint8_t dst[4];
     uint8_t op[]; //不占空间的变长成员变量，搜索：长度为0的数组
 };
@@ -72,11 +71,10 @@ struct ipv6_header {
     uint32_t traffic_class : 8;
     uint32_t flow_label : 20;
     uint16_t payload_len;
-    uint8_t next_header;
+    header_t next_header;
     uint8_t hop_limit;
     uint8_t src[16];
     uint8_t dst[16];
-    uint8_t header[];
 };
 
 struct icmp_packet {
@@ -101,22 +99,24 @@ struct tcp_header {
     uint16_t dst;
     uint32_t seq;
     uint32_t ack;
-    uint8_t len : 4;
     uint8_t : 4;
+    uint8_t len : 4;
     struct flag_t {
-        uint8_t cwr : 1;
-        uint8_t ece : 1;
-        uint8_t urg : 1;
-        uint8_t ack : 1;
-        uint8_t psh : 1;
-        uint8_t rst : 1;
-        uint8_t syn : 1;
         uint8_t fin : 1;
+        uint8_t syn : 1;
+        uint8_t rst : 1;
+        uint8_t psh : 1;
+        uint8_t ack : 1;
+        uint8_t urg : 1;
+        uint8_t ece : 1;
+        uint8_t cwr : 1;
     } flags;
     uint16_t window_size;
     uint16_t checksum;
     uint16_t urgent_ptr;
     uint8_t op[];
+
+    uint16_t type() { return std::min(src, dst); }
 };
 
 struct udp_header {
@@ -124,10 +124,13 @@ struct udp_header {
     uint16_t dst;
     uint16_t len;
     uint16_t checksum;
+
+    uint16_t type() { return std::min(src, dst); }
 };
 
 //应用层类型的判断要靠端口。。源端口与目的端口都要判断。。
 //长度也是靠tcp/udp里的长度判断
+//port: 53
 struct dns_packet {
     uint16_t id;
     struct flag_t {
@@ -243,7 +246,6 @@ REFLECT(ipv6_header) {
     FIELD(hop_limit);
     FIELD(src);
     FIELD(dst);
-    FIELD(header);
 }
 
 REFLECT(icmp_packet) {

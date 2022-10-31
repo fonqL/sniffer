@@ -1,3 +1,4 @@
+#include "parse.h"
 #include <QString>
 #include <any>
 #include <pcap.h>
@@ -15,9 +16,6 @@ private:
     bpf_program fcode;
 
 public:
-    // info.addresses != nullptr
-    //     ? ((sockaddr_in*)(info.addresses->netmask))->sin_addr.S_un.S_addr
-    //     : 0xffffff;
     pcap_wrapper(const char* name, u_int netmask)
         : netmask(netmask) {
         char errbuf[PCAP_ERRBUF_SIZE];
@@ -67,8 +65,9 @@ public:
         return src == nullptr;
     }
 
-    //返回语法检查结果。正确为true，错误为false
-    bool set_filter(std::string_view filter) {
+    //返回语法检查结果。正确为true，错误为false。不许忽视结果
+    [[nodiscard]] bool
+    set_filter(std::string_view filter) {
         if (filter.size() >= PCAP_BUF_SIZE) throw std::overflow_error{"filter string too long"};
 
         char buf[PCAP_BUF_SIZE] = {0};
@@ -95,7 +94,7 @@ public:
             printf("%s,%.6ld len:%d\n", timestr, header->ts.tv_usec, header->len);
 
             std::vector<std::any> headers;
-            f(data, data + header->len, headers);
+            parse_datalink(data, data + header->len, headers);
         }
     }
 };
@@ -135,8 +134,9 @@ public:
         std::vector<QString> ret;
         for (auto* dev = header; dev != nullptr; dev = dev->next) {
             ret.push_back(
-                QString("%1 (%2)").arg(dev->name).arg(dev->description ? dev->description
-                                                                       : "No description"));
+                QString("%1 (%2)").arg(dev->description ? dev->description
+                                                        : "No description")
+                    .arg(dev->name));
         }
         return ret;
     }
@@ -150,7 +150,8 @@ public:
         u_int netmask = dev->addresses != nullptr
                             ? ((sockaddr_in*)(dev->addresses->netmask))->sin_addr.S_un.S_addr
                             : 0xffffff; //fallback: C类地址
-        return {dev->name, netmask};    //todo 这里需要test
+        return {dev->name, netmask};
+        //todo 这里需要test，wrapper和list之间能不能靠复制摆脱生命周期联系
     }
 };
 
