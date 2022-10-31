@@ -14,7 +14,8 @@ MainWindow::MainWindow(QWidget *parent)
     for(uint i = 0; i < x.size(); i++){
         ui->comboBox->addItem(x[i]);
     }
-    // 选中的下标,做成主页面类的成员变量了
+    // 选中的下标,做成主页面类的成员变量了,因为lamda表达式传值很麻烦，后面用到也可以用这个办法（引用传值屁用没有
+    // 点击开始抓包按钮后可以用这个值
     this->device_choose = 0;
 
     connect(ui->comboBox, &QComboBox::currentIndexChanged, this, [this](){
