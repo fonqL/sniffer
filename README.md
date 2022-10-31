@@ -34,3 +34,28 @@
 
 5. qt mingw报错：unrecognized command line option '-Zc:__cplusplus' and unrecognized command line option '-permissive-'
    最容易解决的方式：qtcreator里创建一个项目，测试能不能跑起来，然后再用vscode试试能不能跑起来，如果都可以就把CMakeLists.txt.user复制过来（这是qtcreator里创建工程时创建来的）。这是重要信息。
+
+6. 编译成功但是无法启动/运行就从windows的文件管理器打开，看看有没有报错（启动问题
+   如果没有，则启动没问题，是运行时问题，开始debug
+
+## 代码相关
+
+如果觉得uint32_t/unsigned太丑了可以用qt的uint
+
+头文件和cpp文件分不分离我认为无所谓
+但是如果在头文件定义的话要加个inline：
+inline void f() {}
+不然会报错
+
+函数先搜搜c++里有没有再自己实现（严格来说是标准库里有没有
+
+有个注意事项：
+用无符号整数是因为负数在这些情况下是没意义的。
+不过循环递减时要注意一下坑：
+for(uint_t i = 10; i >= 0; i--) / uint i = 10; while(i >= 0) {...; i--;}
+是错误的写法，因为无符号不会出现i < 0的情况。0 - 1会循环到2^32 - 1。
+正确的写法：
+for(uint_t i = 11; i > 0; --i) / uint i = 11; while(i-- > 0) {...;}
+这时候后置--的作用就体现出来了
+坚持区间左闭右开一百年不动摇（
+
