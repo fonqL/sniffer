@@ -35,4 +35,5 @@
 5. qt mingw报错：unrecognized command line option '-Zc:__cplusplus' and unrecognized command line option '-permissive-'
    最容易解决的方式：qtcreator里创建一个项目，测试能不能跑起来，然后再用vscode试试能不能跑起来，如果都可以就把CMakeLists.txt.user复制过来（这是qtcreator里创建工程时创建来的）。这是重要信息。
 
-6. 编译成功但是运行不起来就从windows的文件管理器打开，看看有没有报错（绝对有
+6. 编译成功但是无法启动/运行就从windows的文件管理器打开，看看有没有报错（启动问题
+   如果没有，则启动没问题，是运行时问题，开始debug
