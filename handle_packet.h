@@ -46,7 +46,7 @@ public:
                         errbuf);
         if (src == nullptr) throw std::runtime_error{errbuf};
 
-        if (pcap_datalink_ext(src) != DLT_EN10MB) pcap_close(src), throw std::runtime_error{"only for Ethernet networks."};
+        if (pcap_datalink(src) != DLT_EN10MB) pcap_close(src), throw std::runtime_error{"only for Ethernet networks."};
 
         file = pcap_dump_open(src, DEFAULT_FILENAME.data());
         if (file == nullptr) pcap_close(src), throw std::runtime_error{"pcap_dump_open"};

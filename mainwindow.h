@@ -17,5 +17,6 @@ public:
 
 private:
     Ui::MainWindow *ui;
+    uint device_choose;
 };
 #endif // MAINWINDOW_H
