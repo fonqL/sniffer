@@ -2,7 +2,7 @@
 #include <memory>
 #include <mutex>
 
-using T = std::string;
+template<typename T>
 class SafeQueue {
     static_assert(std::is_nothrow_move_assignable_v<T>);
     static_assert(std::is_nothrow_move_constructible_v<T>);
@@ -33,7 +33,7 @@ public:
           tail(header.get()) {
     }
 
-    void push(T newdata) {
+    void push(T&& newdata) {
         auto newtail = std::make_unique<Node>();
         auto ptr = newtail.get();
         [&, lock = std::scoped_lock{tailMutex}]() {
