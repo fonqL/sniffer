@@ -22,11 +22,11 @@
 //         return -1;
 //
 //     SafeQueue<std::vector<std::any>> packet_queue;
-//     dev.start_capture(packet_queue);
+//     dev.start_capture(packet_queue); //启动抓包，自动起了一个线程。不会在这阻塞
 //     while (true) {
 //         std::vector<std::any> packet = packet_queue.blockPop();
 //     }
-//     dev.stop();
+//     dev.stop(); //在这里会阻塞，等待停止
 // }
 
 static constexpr std::string_view DEFAULT_FILENAME = "./cap";
