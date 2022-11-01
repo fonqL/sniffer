@@ -27,7 +27,7 @@
 4. 文件倒没事，只要把原始二进制丢进去就好了（丢进默认的文件里到时候保存再复制出来）
 
 {
-   1. pcap得到数据流，然后解析头，丢进容器里(vector<vector<any>>)
+   1. pcap得到数据流，然后解析头，丢进容器里(SafeQueue<vector<any>>)
    std::vector, std::any 的知识可以上网搜搜
 
    简单解释：内层表示解析出的各种协议头，外层表示所有数据包
@@ -37,7 +37,7 @@
 
 {
    3. listview，treeview：
-   读取vector<vector<any>>，因为第一层协议必是以太帧，而下层协议字段里有上层协议的类型信息，所以类型信息足够了
+   读取SafeQueue<vector<any>>，因为第一层协议必是以太帧，而下层协议字段里有上层协议的类型信息，所以类型信息足够了
    先仅提供给定字符串对同名字段的查询
    负责展示.
    这个接口不好设计，是调用方，需要的话可以往mainwindow里塞成员变量。
@@ -51,7 +51,7 @@
    用上各协议的索引容器。
    可以用正则表达式来解析。std::regex。
    也可以用qt的正则。随便
-   函数接口大致为：vector<uint_t> fun(const vector<vector<any>>& packets, const vector<uint_t>& indexs)
+   函数接口大致为：vector<uint_t> fun(const SafeQueue<vector<any>>& packets, const vector<uint_t>& indexs)
    或者：bool fun(const vector<any>& packets)
    捕获过滤器也是支持的，界面记得留个功能。具体实现丢给底层（1,2）
 }
@@ -61,8 +61,19 @@
 注意因为不可能实现所有的协议（比如http都懒得写了），所以展示的话直接用个unknown protocal之类的作为一个默认备选项
 这个交给界面来处理
 
+！！！接口类型变动！！！
+新的约定：
+1.
+存放数据包的结构为SafeQueue，是一个线程安全的先入先出队列。
+抓包方为生产者，界面方是消费者。
+SafeQueue不支持遍历。消费者一方必须从队列里拿出来放进自己的容器数据结构里然后处理。
 
-
+2.
+原先代表数据包的协议头结构的vector<any>含义发生变化：
+现在是：
+vector<any>中的第一项（vec[0]）的类型为simple_info，在handle_packet.h里定义。
+含有捕获的时刻和原始bit流信息。
+（因为才发现wireshark里显示的十六进制bit是未处理过的。。
 
 
 

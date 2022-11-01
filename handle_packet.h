@@ -1,11 +1,33 @@
+#include "SafeQueue.h"
 #include "parse.h"
 #include <QDateTime>
 #include <QString>
-#include <any>
 #include <pcap.h>
 #include <stdexcept>
-#include <string_view>
-#include <vector>
+
+// 使用例
+// #include "handle_packet.h"
+// #include <iostream>
+// int main() {
+//     device_list devs;
+//     std::vector<QString> infos = devs.to_strings();
+//     for (uint i = 0; i < infos.size(); ++i)
+//         qDebug() << i << ' ' << infos[i] << '\n';
+//     //要把CMakeLists.txt换成CMakeLists-cmd.txt 或在qt里运行才有命令行输出功能
+//
+//     uint index;
+//     std::cin >> index;
+//     device dev = devs.open(index);
+//     if (dev.set_filter("") == false) //可选步骤，字符串也可为空
+//         return -1;
+//
+//     SafeQueue<std::vector<std::any>> packet_queue;
+//     dev.start_capture(packet_queue);
+//     while (true) {
+//         std::vector<std::any> packet = packet_queue.blockPop();
+//     }
+//     dev.stop();
+// }
 
 static constexpr std::string_view DEFAULT_FILENAME = "./cap";
 
@@ -14,18 +36,17 @@ struct simple_info {
     std::vector<uint8_t> raw_data;
 };
 
-class pcap_wrapper {
+class device {
 private:
     pcap_t* src;
     pcap_dumper_t* file;
     u_int netmask;
     bpf_program fcode;
+    std::atomic_bool stop_flag = false;
+    std::thread thread;
 
 public:
-    std::atomic_bool is_stop = false;
-
-public:
-    pcap_wrapper(const char* name, u_int netmask)
+    device(const char* name, u_int netmask)
         : netmask(netmask) {
         char errbuf[PCAP_ERRBUF_SIZE];
         src = pcap_open(name,
@@ -36,29 +57,39 @@ public:
                         errbuf);
         if (src == nullptr) throw std::runtime_error{errbuf};
 
-        if (pcap_datalink(src) != DLT_EN10MB) pcap_close(src), throw std::runtime_error{"only for Ethernet networks."};
+        if (pcap_datalink(src) != DLT_EN10MB)
+            pcap_close(src), throw std::runtime_error{"only for Ethernet networks."};
 
         file = pcap_dump_open(src, DEFAULT_FILENAME.data());
         if (file == nullptr) pcap_close(src), throw std::runtime_error{"pcap_dump_open"};
     }
 
-    pcap_wrapper(pcap_wrapper&& x)
-        : src(x.src), file(x.file), netmask(x.netmask), fcode(x.fcode) {
+    device(device&& x)
+        : src(x.src),
+          file(x.file),
+          netmask(x.netmask),
+          fcode(x.fcode),
+          thread(std::move(x.thread)) {
+        stop_flag.store(x.stop_flag.load(std::memory_order_relaxed), std::memory_order_relaxed);
         x.src = nullptr, x.file = nullptr;
     }
 
-    pcap_wrapper(const pcap_wrapper&) = delete;
-    pcap_wrapper& operator=(const pcap_wrapper&) = delete;
-    pcap_wrapper& operator=(pcap_wrapper&&) = delete;
+    device(const device&) = delete;
+    device& operator=(const device&) = delete;
+    device& operator=(device&&) = delete;
 
-    ~pcap_wrapper() {
-        if (src != nullptr)
-            pcap_dump_close(file), pcap_close(src);
+    ~device() {
+        if (src == nullptr)
+            return;
+        if (thread.joinable())
+            stop();
+        pcap_dump_close(file);
+        pcap_close(src);
     }
 
 private:
     std::tuple<const pcap_pkthdr*, const u_char*> get_packet() {
-        while (true) {
+        while (!stop_flag.load(std::memory_order_relaxed)) {
             pcap_pkthdr* header;
             const u_char* data;
             int e = pcap_next_ex(src, &header, &data);
@@ -67,11 +98,15 @@ private:
             pcap_dump((u_char*)file, header, data);
             return {header, data};
         }
+        return {nullptr, nullptr};
     }
 
 public:
-    bool is_valid() const {
-        return src == nullptr;
+    void stop() {
+        if (!thread.joinable())
+            return;
+        stop_flag.store(true, std::memory_order_relaxed);
+        thread.join();
     }
 
     //返回语法检查结果。正确为true，错误为false。不许忽视结果
@@ -91,19 +126,24 @@ public:
         return true;
     }
 
-    void capture() { //qthread
-        while (!is_stop.load(std::memory_order_relaxed)) {
-            auto [header, data] = get_packet();
+    //不会阻塞！在里面开了线程，外面不用开了
+    void start_capture(SafeQueue<std::vector<std::any>>& queue) {
+        thread = std::thread([this, &queue]() {
+            while (!stop_flag.load(std::memory_order_relaxed)) {
+                auto [header, data] = get_packet();
+                if (header == nullptr) break;
+                std::vector<std::any> res;
+                res.push_back(simple_info{
+                    QDateTime::fromSecsSinceEpoch(header->ts.tv_sec)
+                        + std::chrono::milliseconds{header->ts.tv_usec / 1000},
+                    { data,       data + header->len}
+                });
 
-            std::vector<std::any> res;
-            res.push_back(simple_info{
-                QDateTime::fromSecsSinceEpoch(header->ts.tv_sec)
-                    + std::chrono::milliseconds{header->ts.tv_usec / 1000},
-                { data,       data + header->len}
-            });
+                parse_datalink(data, data + header->len, res);
 
-            // parse_datalink(data, data + header->len, res);
-        }
+                queue.push(std::move(res));
+            }
+        });
     }
 };
 
@@ -151,7 +191,7 @@ public:
     }
 
     //i是索引，从0开始
-    pcap_wrapper open(uint i) {
+    device open(uint i) {
         pcap_if_t* dev;
         for (dev = header; i > 0; --i) {
             dev = dev->next;
@@ -163,7 +203,7 @@ public:
     }
 };
 
-inline pcap_wrapper open_file(std::string_view file_name) {
+inline device open_file(std::string_view file_name) {
     if (file_name.size() >= PCAP_BUF_SIZE) throw std::overflow_error("filename too long");
 
     char source_name[PCAP_BUF_SIZE];

@@ -21,6 +21,18 @@ class SafeQueue {
 
     std::condition_variable notEmpty;
 
+public:
+    SafeQueue()
+        : header(std::make_unique<Node>()),
+          tail(header.get()) {
+    }
+
+    SafeQueue(const SafeQueue&) = delete;
+    SafeQueue(SafeQueue&&) = delete;
+    SafeQueue& operator=(const SafeQueue&) = delete;
+    SafeQueue& operator=(SafeQueue&&) = delete;
+    ~SafeQueue() = default;
+
 private:
     Node* getTail() {
         std::scoped_lock lock{tailMutex};
@@ -28,31 +40,26 @@ private:
     }
 
 public:
-    SafeQueue()
-        : header(std::make_unique<Node>()),
-          tail(header.get()) {
-    }
-
     void push(T&& newdata) {
         auto newtail = std::make_unique<Node>();
         auto ptr = newtail.get();
-        [&, lock = std::scoped_lock{tailMutex}]() {
+        {
+            std::scoped_lock lock{tailMutex};
             tail->data = std::move(newdata);
             tail->next = std::move(newtail);
             tail = ptr;
-        }();
+        }
         notEmpty.notify_one();
     }
 
     T blockPop() {
-        return [&, lock = std::unique_lock{headerMutex}]() mutable { //
-            notEmpty.wait(lock, [&, header = header.get()]() {       //
-                return header != getTail();
-            });
-            auto ret = std::move(header->data);
-            header = std::move(header->next);
-            return ret;
-        }();
+        std::unique_lock lock{headerMutex};
+        notEmpty.wait(lock, [&, header = header.get()]() {
+            return header != getTail();
+        });
+        auto ret = std::move(header->data);
+        header = std::move(header->next);
+        return ret;
     }
 
     //如果需要不阻塞的，允许失败的pop以后再写
