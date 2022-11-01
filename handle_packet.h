@@ -1,4 +1,5 @@
 #include "parse.h"
+#include <QDateTime>
 #include <QString>
 #include <any>
 #include <pcap.h>
@@ -8,12 +9,20 @@
 
 static constexpr std::string_view DEFAULT_FILENAME = "./cap";
 
+struct simple_info {
+    QDateTime t;
+    std::vector<uint8_t> raw_data;
+};
+
 class pcap_wrapper {
 private:
     pcap_t* src;
     pcap_dumper_t* file;
     u_int netmask;
     bpf_program fcode;
+
+public:
+    std::atomic_bool is_stop = false;
 
 public:
     pcap_wrapper(const char* name, u_int netmask)
@@ -34,7 +43,7 @@ public:
     }
 
     pcap_wrapper(pcap_wrapper&& x)
-        : src(x.src), file(x.file) {
+        : src(x.src), file(x.file), netmask(x.netmask), fcode(x.fcode) {
         x.src = nullptr, x.file = nullptr;
     }
 
@@ -61,7 +70,7 @@ private:
     }
 
 public:
-    bool is_empty() const {
+    bool is_valid() const {
         return src == nullptr;
     }
 
@@ -83,18 +92,17 @@ public:
     }
 
     void capture() { //qthread
-        while (true) {
+        while (!is_stop.load(std::memory_order_relaxed)) {
             auto [header, data] = get_packet();
-            char timestr[16];
-            time_t local_tv_sec = header->ts.tv_sec;
-            tm ltime;
-            localtime_s(&ltime, &local_tv_sec);
-            strftime(timestr, sizeof(timestr), "%H:%M:%S", &ltime);
 
-            printf("%s,%.6ld len:%d\n", timestr, header->ts.tv_usec, header->len);
+            std::vector<std::any> res;
+            res.push_back(simple_info{
+                QDateTime::fromSecsSinceEpoch(header->ts.tv_sec)
+                    + std::chrono::milliseconds{header->ts.tv_usec / 1000},
+                { data,       data + header->len}
+            });
 
-            std::vector<std::any> headers;
-            parse_datalink(data, data + header->len, headers);
+            // parse_datalink(data, data + header->len, res);
         }
     }
 };
@@ -106,7 +114,7 @@ private:
 public:
     device_list() {
         char errbuf[PCAP_ERRBUF_SIZE];
-        int e = pcap_findalldevs_ex(PCAP_SRC_IF_STRING, NULL, &header, errbuf);
+        int e = pcap_findalldevs(&header, errbuf);
         if (e == PCAP_ERROR) throw std::runtime_error{errbuf};
     }
 
@@ -134,9 +142,10 @@ public:
         std::vector<QString> ret;
         for (auto* dev = header; dev != nullptr; dev = dev->next) {
             ret.push_back(
-                QString("%1 (%2)").arg(dev->description ? dev->description
-                                                        : "No description")
-                    .arg(dev->name));
+                QString::asprintf("%s (%s)",
+                                  dev->name,
+                                  dev->description ? dev->description //
+                                                   : "No description"));
         }
         return ret;
     }
@@ -151,7 +160,6 @@ public:
                             ? ((sockaddr_in*)(dev->addresses->netmask))->sin_addr.S_un.S_addr
                             : 0xffffff; //fallback: C类地址
         return {dev->name, netmask};
-        //todo 这里需要test，wrapper和list之间能不能靠复制摆脱生命周期联系
     }
 };
 
