@@ -25,6 +25,17 @@
 //     dev.start_capture(packet_queue); //启动抓包，自动起了一个线程。不会在这阻塞
 //     while (true) {
 //         std::vector<std::any> packet = packet_queue.blockPop();
+//
+//         //处理info...
+//         simple_info info = std::any_cast<simple_info>(packet[0]);
+//
+//         //处理以太帧...
+//         eth_header eth = std::any_cast<eth_header>(packet[1]); //第一项肯定是以太头
+//
+//         if (packet[0].type() == typeid(ipv4_header)) {
+//             ...
+//         }else if...
+
 //     }
 //     dev.stop(); //在这里会阻塞，等待停止
 // }
