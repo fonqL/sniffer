@@ -2,6 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QTimer>
+#include "handle_packet.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -18,5 +20,7 @@ public:
 private:
     Ui::MainWindow *ui;
     uint device_choose;
+    bool stop;
+    SafeQueue<std::vector<std::any>> packet_queue;
 };
 #endif // MAINWINDOW_H
