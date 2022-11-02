@@ -56,6 +56,7 @@ private:
     bpf_program fcode;
     std::atomic_bool stop_flag = false;
     std::thread thread;
+    SafeQueue<std::vector<std::any>> queue;
 
 public:
     device(const char* name, u_int netmask)
@@ -138,9 +139,13 @@ public:
         return true;
     }
 
-    //不会阻塞！在里面开了线程，外面不用开了
-    void start_capture(SafeQueue<std::vector<std::any>>& queue) {
-        thread = std::thread([this, &queue]() {
+    //不会阻塞！
+    std::vector<std::any> try_get() {
+        return queue.tryPop();
+    }
+
+    void start_capture() {
+        thread = std::thread([this]() {
             while (!stop_flag.load(std::memory_order_relaxed)) {
                 auto [header, data] = get_packet();
                 if (header == nullptr) break;
@@ -150,9 +155,7 @@ public:
                         + std::chrono::milliseconds{header->ts.tv_usec / 1000},
                     { data,       data + header->len}
                 });
-
                 parse_datalink(data, data + header->len, res);
-
                 queue.push(std::move(res));
             }
         });

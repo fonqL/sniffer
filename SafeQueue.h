@@ -6,6 +6,7 @@ template<typename T>
 class SafeQueue {
     static_assert(std::is_nothrow_move_assignable_v<T>);
     static_assert(std::is_nothrow_move_constructible_v<T>);
+    static_assert(std::is_nothrow_default_constructible_v<T>);
 
     struct Node {
         std::unique_ptr<Node> next; //stackoverflow kusa.但是设定pophead。。单链表不能poptail
@@ -52,7 +53,7 @@ public:
         notEmpty.notify_one();
     }
 
-    T blockPop() {
+    T waitPop() {
         std::unique_lock lock{headerMutex};
         notEmpty.wait(lock, [&, header = header.get()]() {
             return header != getTail();
@@ -62,7 +63,14 @@ public:
         return ret;
     }
 
-    //如果需要不阻塞的，允许失败的pop以后再写
+    T tryPop() {
+        std::unique_lock lock{headerMutex};
+        if (header.get() == getTail())
+            return T{};
+        auto ret = std::move(header->data);
+        header = std::move(header->next);
+        return ret;
+    }
 
     bool isEmpty() {
         std::scoped_lock lock{headerMutex};
