@@ -27,6 +27,18 @@ MainWindow::MainWindow(QWidget *parent)
         ui->label_text->setText(x[this->device_choose]);
     });
 
+    //开启线程
+    connect(ui->pushButton_2, &QPushButton::clicked, this, [&,this](){
+        device dev = devices.open(this->device_choose);
+        // 设置过滤规则
+
+        SafeQueue<std::vector<std::any>> packet_queue;
+        dev.start_capture(packet_queue); //启动抓包，自动起了一个线程。不会在这阻塞
+        std::vector<std::any> packet = packet_queue.blockPop();
+        auto sm = std::any_cast<simple_info>(packet[0]);
+        ui->label_text->setText(sm.t.toString("yyyy-MM-dd hh:mm:ss"));
+    });
+
 }
 
 MainWindow::~MainWindow()
