@@ -4,6 +4,7 @@
 #include <QString>
 #include <pcap.h>
 #include <stdexcept>
+#include <thread>
 
 // 使用例
 // #include "handle_packet.h"
