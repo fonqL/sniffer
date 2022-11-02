@@ -190,7 +190,7 @@ public:
     }
 
     //先做一个这个东西，有需要再做个完善的遍历访问功能
-    std::vector<QString> to_strings() {
+    std::vector<QString> to_strings() const {
         std::vector<QString> ret;
         for (auto* dev = header; dev != nullptr; dev = dev->next) {
             ret.push_back(
@@ -203,7 +203,7 @@ public:
     }
 
     //i是索引，从0开始
-    device open(uint i) {
+    device open(uint i) const {
         pcap_if_t* dev;
         for (dev = header; i > 0; --i) {
             dev = dev->next;
