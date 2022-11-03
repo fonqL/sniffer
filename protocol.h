@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <string_view>
+#include <vector>
 
 struct eth_header {
     enum proto_t : uint16_t { //指定实现枚举的数据类型，正常使用即可，可以忽略
@@ -33,7 +34,7 @@ struct arp_packet {
     uint8_t dst_ip[4];
 };
 
-struct ipv4_header {
+struct ipv4_header_base {
     enum proto_t : uint8_t {
         ICMP = 1,
         IPv4 = 4,
@@ -57,7 +58,10 @@ struct ipv4_header {
     uint16_t checksum;
     uint8_t src[4]; //inet_ntop 转成字符串
     uint8_t dst[4];
-    uint8_t op[]; //不占空间的变长成员变量，搜索：长度为0的数组
+};
+
+struct ipv4_header : ipv4_header_base {
+    uint8_t op[40];
 };
 
 struct ipv6_header {
@@ -77,7 +81,7 @@ struct ipv6_header {
     uint8_t dst[16];
 };
 
-struct icmp_packet {
+struct icmp_packet_base {
     enum type_t : uint8_t {
         EHCO_REPLY = 0,
         UNREACHABLE = 3,
@@ -89,18 +93,21 @@ struct icmp_packet {
     uint8_t code;
     uint16_t checksum;
     uint32_t field; //解释权归type所有。。
-    uint8_t data[];
     //数据部分长度也取决于type。。
     //wireshark也把解析的数据归于icmp内而不是与icmp同级
 };
 
-struct tcp_header {
+struct icmp_packet : icmp_packet_base {
+    std::vector<uint8_t> data;
+};
+
+struct tcp_header_base {
     uint16_t src;
     uint16_t dst;
     uint32_t seq;
     uint32_t ack;
     uint8_t : 4;
-    uint8_t len : 4;
+    uint8_t header_len : 4;
     struct flag_t {
         uint8_t fin : 1;
         uint8_t syn : 1;
@@ -114,9 +121,12 @@ struct tcp_header {
     uint16_t window_size;
     uint16_t checksum;
     uint16_t urgent_ptr;
-    uint8_t op[];
 
     uint16_t type() { return std::min(src, dst); }
+};
+
+struct tcp_header : tcp_header_base {
+    uint8_t op[40];
 };
 
 struct udp_header {
@@ -131,7 +141,7 @@ struct udp_header {
 //应用层类型的判断要靠端口。。源端口与目的端口都要判断。。
 //长度也是靠tcp/udp里的长度判断
 //port: 53
-struct dns_packet {
+struct dns_packet_base {
     uint16_t id;
     struct flag_t {
         uint16_t qr : 1;
@@ -147,7 +157,10 @@ struct dns_packet {
     uint16_t answer_rrs;
     uint16_t authority_rrs;
     uint16_t additional_rrs;
-    uint8_t data[];
+};
+
+struct dns_packet : dns_packet_base {
+    std::vector<uint8_t> data;
 };
 
 // enum class query_t : uint8_t { //查询的资源记录类型。
@@ -183,12 +196,12 @@ struct dns_packet {
 
 static_assert(sizeof(eth_header) == 14); //验证
 static_assert(sizeof(arp_packet) == 28);
-static_assert(sizeof(ipv4_header) == 20);
+static_assert(sizeof(ipv4_header_base) == 20);
 static_assert(sizeof(ipv6_header) == 40);
-static_assert(sizeof(icmp_packet) == 8);
-static_assert(sizeof(tcp_header) == 20);
+static_assert(sizeof(icmp_packet_base) == 8);
+static_assert(sizeof(tcp_header_base) == 20);
 static_assert(sizeof(udp_header) == 8);
-static_assert(sizeof(dns_packet) == 12);
+static_assert(sizeof(dns_packet_base) == 12);
 
 //
 
@@ -256,7 +269,7 @@ REFLECT(icmp_packet) {
     FIELD(data);
 }
 
-REFLECT(tcp_header::flag_t) {
+REFLECT(tcp_header_base::flag_t) {
     FIELD(cwr);
     FIELD(ece);
     FIELD(urg);
@@ -272,7 +285,7 @@ REFLECT(tcp_header) {
     FIELD(dst);
     FIELD(seq);
     FIELD(ack);
-    FIELD(len);
+    FIELD(header_len);
     FIELD(flags);
     FIELD(window_size);
     FIELD(checksum);
