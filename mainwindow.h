@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 #include <QTimer>
+#include <QDateTime>
+#include <QStandardItemModel>
 #include "handle_packet.h"
 
 QT_BEGIN_NAMESPACE
@@ -22,5 +24,7 @@ private:
     uint device_choose;
     bool stop;
     device* dev;
+    std::vector<std::vector<std::any> > *packets;
+    QStandardItemModel *model;
 };
 #endif // MAINWINDOW_H
