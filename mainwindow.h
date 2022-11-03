@@ -21,6 +21,6 @@ private:
     Ui::MainWindow *ui;
     uint device_choose;
     bool stop;
-    SafeQueue<std::vector<std::any>> packet_queue;
+    device* dev;
 };
 #endif // MAINWINDOW_H

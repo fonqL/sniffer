@@ -25,13 +25,11 @@ MainWindow::MainWindow(QWidget* parent)
     });
 
     QTimer* timer = new QTimer(this);
-    connect(timer, &QTimer::timeout, [this, devices = std::move(devices)]() {
+    connect(timer, &QTimer::timeout, [this]() {
         // device_list devices;
-        device dev = devices.open(this->device_choose);
         //设置过滤规则
-        dev.start_capture(this->packet_queue); //启动抓包，自动起了一个线程。不会在这阻塞
 
-        std::vector<std::any> packet = this->packet_queue.blockPop();
+        std::vector<std::any> packet = this->dev->try_get();
 
         if (packet.size() > 0) {
             //处理info...
@@ -44,12 +42,16 @@ MainWindow::MainWindow(QWidget* parent)
         }
     });
     //开启线程
-    connect(ui->pushButton_2, &QPushButton::clicked, this, [=]() {
-        timer->start(5000);
+    connect(ui->pushButton_2, &QPushButton::clicked, this, [=, devices = std::move(devices)]()mutable {
+        this->dev = new device(devices.open(this->device_choose));
+        this->dev->start_capture();
+        timer->start(1000);
     });
 
     connect(ui->pushButton, &QPushButton::clicked, this, [=]() {
         timer->stop();
+        this->dev->stop();
+        delete this->dev;
     });
 }
 
