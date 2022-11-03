@@ -14,6 +14,11 @@ MainWindow::MainWindow(QWidget* parent)
     // 点击开始抓包按钮后可以用这个值
     this->device_choose = 0;
     this->stop = true;
+    this->packets = new std::vector< std::vector<std::any> >();
+    this->model = new QStandardItemModel(this);
+
+    model->setHorizontalHeaderLabels(QStringList()<<"序号"<<"时间"<<"。。");
+    ui->tableView->setModel(this->model);
 
     connect(ui->comboBox, &QComboBox::currentIndexChanged, this, [this]() {
         this->device_choose = (uint)ui->comboBox->currentIndex();
@@ -25,34 +30,46 @@ MainWindow::MainWindow(QWidget* parent)
     });
 
     QTimer* timer = new QTimer(this);
-    connect(timer, &QTimer::timeout, [this, devices = std::move(devices)]() {
+    connect(timer, &QTimer::timeout, [this]()mutable {
         // device_list devices;
-        device dev = devices.open(this->device_choose);
         //设置过滤规则
-        dev.start_capture(this->packet_queue); //启动抓包，自动起了一个线程。不会在这阻塞
 
-        std::vector<std::any> packet = this->packet_queue.blockPop();
+        std::vector<std::any> packet = this->dev->try_get();
 
         if (packet.size() > 0) {
             //处理info...
+            this->packets->push_back(packet);
+
+            int index = this->packets->size();
             simple_info info = std::any_cast<simple_info>(packet[0]);
-            ui->label_text->setText(info.t.toString("yyyy-MM-dd hh:mm:ss"));
+            eth_header eth = std::any_cast<eth_header>(packet[1]);
+            this->model->appendRow(
+                QList<QStandardItem *>()
+                << new QStandardItem(QString::number(index))
+                << new QStandardItem(info.t.toString("yyyy-MM-dd hh:mm:ss"))
+            );
             //处理以太帧...
-            // eth_header eth = std::any_cast<eth_header>(packet[1]); //第一项肯定是以太头
+            //  //第一项肯定是以太头
         } else {
-            ui->label_text->setText("空");
+            
         }
     });
     //开启线程
-    connect(ui->pushButton_2, &QPushButton::clicked, this, [=]() {
-        timer->start(5000);
+    connect(ui->pushButton_2, &QPushButton::clicked, this, [=, devices = std::move(devices)]()mutable {
+        this->dev = new device(devices.open(this->device_choose));
+        this->dev->start_capture();
+        timer->start(50);
     });
 
     connect(ui->pushButton, &QPushButton::clicked, this, [=]() {
         timer->stop();
+        this->dev->stop();
+        delete this->dev;
     });
+
 }
 
 MainWindow::~MainWindow() {
+    delete this->packets;
     delete ui;
 }
