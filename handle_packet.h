@@ -35,7 +35,7 @@ public:
     ~device();
 
 private:
-    std::tuple<const pcap_pkthdr*, const u_char*> get_packet();
+    auto get_packet() -> std::tuple<const pcap_pkthdr*, const u_char*>;
 
 public:
     void stop();
