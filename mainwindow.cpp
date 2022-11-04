@@ -1,6 +1,22 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 
+void MainWindow::addRow(int i){
+    
+    analysis *ana = new analysis(this->packets->at(i));
+
+    this->model->appendRow(
+        QList<QStandardItem *>()
+            << new QStandardItem(QString::number(i+1))
+            << new QStandardItem(ana->time)
+            << new QStandardItem(ana->header)
+            << new QStandardItem(ana->srcIp)
+            << new QStandardItem(ana->desIp)
+            << new QStandardItem(ana->len)
+        //  << new QStandardItem()
+    );
+}
+
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
     ui->setupUi(this);
@@ -17,7 +33,7 @@ MainWindow::MainWindow(QWidget* parent)
     this->packets = new std::vector< std::vector<std::any> >();
     this->model = new QStandardItemModel(this);
 
-    model->setHorizontalHeaderLabels(QStringList()<<"序号"<<"时间"<<"协议"<<"源MAC"<<"目的MAC");
+    model->setHorizontalHeaderLabels(QStringList()<<"序号"<<"时间"<<"协议"<<"源ip"<<"目的ip"<<"长度");
     ui->tableView->setModel(this->model);
     ui->tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
@@ -43,17 +59,10 @@ MainWindow::MainWindow(QWidget* parent)
 
             int index = this->packets->size();
 
-            analysis *ana = new analysis(packet);
-
-            this->model->appendRow(
-                QList<QStandardItem *>()
-                << new QStandardItem(QString::number(index))
-                << new QStandardItem(ana->time)
-                << new QStandardItem(ana->header)
-                << new QStandardItem(ana->srcMac)
-                << new QStandardItem(ana->desMac)
-                // << new QStandardItem()
-            );
+            //在这里进行过滤
+            if(true){
+                this->addRow(index-1);
+            }
             //处理以太帧...
             //  //第一项肯定是以太头
         } else {

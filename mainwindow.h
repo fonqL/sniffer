@@ -26,5 +26,7 @@ private:
     device* dev;
     std::vector<std::vector<std::any> > *packets;
     QStandardItemModel *model;
+    //i为packets中packet的下标
+    void addRow(int i);
 };
 #endif // MAINWINDOW_H
