@@ -1,4 +1,5 @@
 #include "handle_packet.h"
+#include "protocol.h"
 
 //用于分析的类，直接用packet创建，然后用其成员变量
 class analysis{
