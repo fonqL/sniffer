@@ -1,3 +1,5 @@
+#pragma once
+
 #include "protocol.h"
 #include <WinSock2.h>
 #include <any>
