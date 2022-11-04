@@ -76,8 +76,18 @@ vector<any>中的第一项（vec[0]）的类型为simple_info，在handle_packet
 （因为才发现wireshark里显示的十六进制bit是未处理过的。。
 
 
-
-
+过滤器的工作方式：
+1. 捕获时过滤：这样子比较方便
+   比如"tcp.src==53" //源端口是53
+   bool filter(const vector<std::any> &packet)
+      if(packet[3].type()==typeid(tcp_header)) { //tcp在第三层
+         if(std::any_cast<const tcp_header&>(packet[3]).src == 53)
+            return true;
+      }
+      return false;
+   虽然在停止捕获后过滤时要全部遍历一遍，没有索引那么准，但是挺好用
+   索引方便的是只要在容器里拿出一个下标，一堆包[下标] 的这个包就绝对是特定的协议包，即不用再次判断。
+   索引作为一个后期的优化吧，可以先不实现。
 
 
 
