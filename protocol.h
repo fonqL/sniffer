@@ -1,5 +1,5 @@
 #pragma once
-#pragma warning(disable : 4200)
+#undef min
 
 #include <stdint.h>
 #include <string_view>
