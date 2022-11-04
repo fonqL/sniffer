@@ -17,8 +17,9 @@ MainWindow::MainWindow(QWidget* parent)
     this->packets = new std::vector< std::vector<std::any> >();
     this->model = new QStandardItemModel(this);
 
-    model->setHorizontalHeaderLabels(QStringList()<<"序号"<<"时间"<<"。。");
+    model->setHorizontalHeaderLabels(QStringList()<<"序号"<<"时间"<<"协议"<<"源MAC"<<"目的MAC");
     ui->tableView->setModel(this->model);
+    ui->tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
     connect(ui->comboBox, &QComboBox::currentIndexChanged, this, [this]() {
         this->device_choose = (uint)ui->comboBox->currentIndex();
@@ -41,12 +42,17 @@ MainWindow::MainWindow(QWidget* parent)
             this->packets->push_back(packet);
 
             int index = this->packets->size();
-            simple_info info = std::any_cast<simple_info>(packet[0]);
-            eth_header eth = std::any_cast<eth_header>(packet[1]);
+
+            analysis *ana = new analysis(packet);
+
             this->model->appendRow(
                 QList<QStandardItem *>()
                 << new QStandardItem(QString::number(index))
-                << new QStandardItem(info.t.toString("yyyy-MM-dd hh:mm:ss"))
+                << new QStandardItem(ana->time)
+                << new QStandardItem(ana->header)
+                << new QStandardItem(ana->srcMac)
+                << new QStandardItem(ana->desMac)
+                // << new QStandardItem()
             );
             //处理以太帧...
             //  //第一项肯定是以太头
