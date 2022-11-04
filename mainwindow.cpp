@@ -46,6 +46,13 @@ MainWindow::MainWindow(QWidget* parent)
         ui->label_text->setText(x[this->device_choose]);
     });
 
+    connect(ui->tableView, &QTableView::clicked, this, [this](){
+        int row = ui-> tableView ->currentIndex().row();
+        QModelIndex index1 = this->model->index(row, 0);
+        QString id = this->model->data(index1).toString();
+        ui->label_text->setText(id);
+    });
+
     QTimer* timer = new QTimer(this);
     connect(timer, &QTimer::timeout, [this]()mutable {
         // device_list devices;
@@ -62,6 +69,7 @@ MainWindow::MainWindow(QWidget* parent)
             //在这里进行过滤
             if(true){
                 this->addRow(index-1);
+                ui->tableView->scrollToBottom();
             }
             //处理以太帧...
             //  //第一项肯定是以太头

@@ -23,16 +23,17 @@ class analysis{
     // 协议：
     // 处理ipv4
     ipv4_header ipv4;
+    // 处理ipv6
+    ipv6_header ipv6;
+    // 处理arp
+    arp_packet arp;
+
     // 处理icmp
     icmp_packet icmp;
     // 处理tcp
     tcp_header tcp;
     // 处理udp
     udp_header udp;
-    // 处理ipv6
-    ipv6_header ipv6;
-    // 处理arp
-    arp_packet arp;
 
 
     analysis(std::vector<std::any> packet){
@@ -62,6 +63,20 @@ class analysis{
             inet_ntop(AF_INET, ipv4.dst, buf2, sizeof(buf2));
             desIp = QString::fromStdString(buf2);
             len = QString::number((int)ipv4.len);
+
+            if(packet[3].type() == typeid(icmp_packet)){
+                header = "icmp";
+                icmp = std::any_cast<icmp_packet>(packet[3]);
+            }
+            else if(packet[3].type() == typeid(tcp_header)){
+                header = "tcp";
+                tcp = std::any_cast<tcp_header>(packet[3]);
+            }
+            else if(packet[3].type() == typeid(udp_header)){
+                header = "udp";
+                udp = std::any_cast<udp_header>(packet[3]);
+            }
+
         }
         else if(packet[2].type() == typeid(arp_packet)){
             type = "ARP";
@@ -80,10 +95,10 @@ class analysis{
             header = "ipv6";
             ipv6 = std::any_cast<ipv6_header>(packet[2]);
             char buf1[20] = { 0 };
-            inet_ntop(AF_INET, ipv6.src, buf1, sizeof(buf1));
+            inet_ntop(AF_INET6, ipv6.src, buf1, sizeof(buf1));
             srcIp = QString::fromStdString(buf1);
             char buf2[20] = { 0 };
-            inet_ntop(AF_INET, ipv6.dst, buf2, sizeof(buf2));
+            inet_ntop(AF_INET6, ipv6.dst, buf2, sizeof(buf2));
             desIp = QString::fromStdString(buf2);
             len = QString::number((int)ipv6.payload_len);
         }
