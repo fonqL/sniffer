@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.5)
 
 project(sniffer VERSION 0.1 LANGUAGES CXX)
 
+add_compile_definitions(NOMINMAX)
+
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set(CMAKE_AUTOUIC ON)

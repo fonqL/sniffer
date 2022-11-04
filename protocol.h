@@ -1,5 +1,4 @@
 #pragma once
-#undef min
 
 #include <stdint.h>
 #include <string_view>
