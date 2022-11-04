@@ -7,6 +7,7 @@
 #include <pcap.h>
 #include <thread>
 //
+// 使用例见最后
 
 struct simple_info {
     QDateTime t;
