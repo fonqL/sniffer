@@ -18,7 +18,8 @@ class analysis{
     QString desIp = "";
     // 协议类型
     QString header = "";
-
+    //源数据
+    QString rawdata = "空";
 
     // 协议：
     // 处理ipv4
@@ -39,6 +40,13 @@ class analysis{
     analysis(std::vector<std::any> packet){
         simple_info info = std::any_cast<simple_info>(packet[0]);
         eth_header eth = std::any_cast<eth_header>(packet[1]);
+
+        char *rawbuf = (char *)malloc(info.raw_data.size()*5*sizeof(char));
+        int offset = 0;
+        for(int i = 0; i < info.raw_data.size(); i++){
+            offset += sprintf(rawbuf+offset, "%02x ", info.raw_data[i]);
+        }
+        rawdata = QString(QLatin1String(rawbuf));
 
         len = QString::number((int)eth.len);
         char *buf = (char *)malloc(80 * sizeof(char));
@@ -101,8 +109,11 @@ class analysis{
             inet_ntop(AF_INET6, ipv6.dst, buf2, sizeof(buf2));
             desIp = QString::fromStdString(buf2);
             len = QString::number((int)ipv6.payload_len);
+
+
         }
         else{
+            type = "other";
             header = "其他协议";
         }
     }

@@ -28,5 +28,6 @@ private:
     QStandardItemModel *model;
     //i为packets中packet的下标
     void addRow(int i);
+    void showDetails(int i);
 };
 #endif // MAINWINDOW_H

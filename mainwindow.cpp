@@ -17,6 +17,72 @@ void MainWindow::addRow(int i){
     );
 }
 
+void MainWindow::showDetails(int i){
+
+    if(i>=this->packets->size()){
+        return;
+    }
+
+    QStandardItemModel* model = new QStandardItemModel(ui->treeView);
+
+    model->setHorizontalHeaderLabels(QStringList()<<("第"+QString::number(i+1)+"个包"));
+
+    QStandardItem* eth_d = new QStandardItem("以太头");
+    model->appendRow(eth_d);
+    analysis *ana = new analysis(this->packets->at(i));
+    eth_d->appendRow(new QStandardItem("类型: "+ana->type));
+    eth_d->appendRow(new QStandardItem("源mac: "+ana->srcMac));
+    eth_d->appendRow(new QStandardItem("目的mac: "+ana->desMac));
+    ui->data->setText(ana->rawdata);
+
+    if(ana->type=="IPv4"){
+        QStandardItem* ip_d = new QStandardItem("IP包头");
+        model->appendRow(ip_d);
+        ip_d->appendRow(new QStandardItem("版本: 4"));
+        ip_d->appendRow(new QStandardItem("源ip: "+ana->srcIp));
+        ip_d->appendRow(new QStandardItem("目的ip: "+ana->desIp));
+        ip_d->appendRow(new QStandardItem("长度: "+ana->len));
+        ip_d->appendRow(new QStandardItem("tos: " + QString::asprintf("0X%02x",ana->ipv4.ds)));
+        ip_d->appendRow(new QStandardItem("ttl: "+QString::asprintf("0X%02x",ana->ipv4.ttl)));
+        QStandardItem* flag = new QStandardItem("flag");
+        flag->appendRow(new QStandardItem("id: "+QString::asprintf("%d",(int)ana->ipv4.id)));
+        flag->appendRow(new QStandardItem("DF: "+QString::asprintf("%d",(int)ana->ipv4.df)));
+        flag->appendRow(new QStandardItem("MF: "+QString::asprintf("%d",(int)ana->ipv4.mf)));
+        flag->appendRow(new QStandardItem("offset: "+QString::asprintf("%d",(int)ana->ipv4.offset)));
+        ip_d->appendRow(flag);
+
+        ip_d->appendRow(new QStandardItem("校验和: "+QString::asprintf("%d",(int)ana->ipv4.checksum)));
+    }
+    else if(ana->type=="ARP"){
+        QStandardItem* arp_d = new QStandardItem("ARP包");
+        model->appendRow(arp_d);
+        QString arp_type;
+        arp_d->appendRow(new QStandardItem("类型: "));
+        arp_d->appendRow(new QStandardItem("hardware: "+QString::asprintf("%d",(int)ana->arp.hardware_type)));
+
+        arp_d->appendRow(new QStandardItem("源ip: "+ana->srcIp));
+
+        char *buf = (char *)malloc(80 * sizeof(char));
+        sprintf(buf, "%02x-%02x-%02x-%02x-%02x-%02x", ana->arp.src_mac[0], ana->arp.src_mac[1], 
+        ana->arp.src_mac[2], ana->arp.src_mac[3], ana->arp.src_mac[4], ana->arp.src_mac[5]);
+        arp_d->appendRow(new QStandardItem("源mac: "+QString(QLatin1String(buf))));
+
+        arp_d->appendRow(new QStandardItem("目的ip: "+ana->desIp));
+
+        buf = (char *)malloc(80 * sizeof(char));
+        sprintf(buf, "%02x-%02x-%02x-%02x-%02x-%02x", ana->arp.dst_mac[0], ana->arp.dst_mac[1], 
+        ana->arp.dst_mac[2], ana->arp.dst_mac[3], ana->arp.dst_mac[4], ana->arp.dst_mac[5]);
+        arp_d->appendRow(new QStandardItem("目的mac: "+QString(QLatin1String(buf))));
+
+    }
+    else if(ana->type=="IPv6"){
+
+    }
+
+    ui->treeView->setModel(model);
+
+}
+
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
     ui->setupUi(this);
@@ -46,10 +112,13 @@ MainWindow::MainWindow(QWidget* parent)
         ui->label_text->setText(x[this->device_choose]);
     });
 
+    //点击查看包详细内容
     connect(ui->tableView, &QTableView::clicked, this, [this](){
         int row = ui-> tableView ->currentIndex().row();
         QModelIndex index1 = this->model->index(row, 0);
         QString id = this->model->data(index1).toString();
+        int i = id.toInt();
+        this->showDetails(i-1);
         ui->label_text->setText(id);
     });
 
