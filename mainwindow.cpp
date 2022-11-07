@@ -56,9 +56,14 @@ void MainWindow::showDetails(int i){
     else if(ana->type=="ARP"){
         QStandardItem* arp_d = new QStandardItem("ARP包");
         model->appendRow(arp_d);
-        QString arp_type;
-        arp_d->appendRow(new QStandardItem("类型: "));
-        arp_d->appendRow(new QStandardItem("hardware: "+QString::asprintf("%d",(int)ana->arp.hardware_type)));
+        QString arp_type="unknown";
+        if((int)ana->arp.op==1){
+            arp_type = "request";
+        }
+        else if((int)ana->arp.op==2){
+            arp_type = "reply";
+        }
+        arp_d->appendRow(new QStandardItem("类型: "+arp_type));
 
         arp_d->appendRow(new QStandardItem("源ip: "+ana->srcIp));
 
