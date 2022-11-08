@@ -76,25 +76,6 @@ class analysis{
             inet_ntop(AF_INET, ipv4.dst, buf2, sizeof(buf2));
             desIp = QString::fromStdString(buf2);
             len = QString::number((int)ipv4.len);
-
-            if(packet[3].type() == typeid(icmp_packet)){
-                header = "icmp";
-                icmp = std::any_cast<icmp_packet>(packet[3]);
-            }
-            else if(packet[3].type() == typeid(tcp_header)){
-                header = "tcp";
-                tcp = std::any_cast<tcp_header>(packet[3]);
-            }
-            else if(packet[3].type() == typeid(udp_header)){
-                header = "udp";
-                udp = std::any_cast<udp_header>(packet[3]);
-            }
-            
-            if(packet[4].type()==typeid(dns_packet)){
-                app = "dns";
-                dns = std::any_cast<dns_packet>(packet[4]);
-            }
-
         }
         else if(packet[2].type() == typeid(arp_packet)){
             type = "ARP";
@@ -119,8 +100,18 @@ class analysis{
             inet_ntop(AF_INET6, ipv6.dst, buf2, sizeof(buf2));
             desIp = QString::fromStdString(buf2);
             len = QString::number((int)ipv6.payload_len);
+        }
+        else{
+            type = "other";
+            header = "其他协议";
+        }
 
-            if(packet[3].type() == typeid(tcp_header)){
+        if(packet.size()>=4){
+            if(packet[3].type() == typeid(icmp_packet)){
+                header = "icmp";
+                icmp = std::any_cast<icmp_packet>(packet[3]);
+            }
+            else if(packet[3].type() == typeid(tcp_header)){
                 header = "tcp";
                 tcp = std::any_cast<tcp_header>(packet[3]);
             }
@@ -128,15 +119,12 @@ class analysis{
                 header = "udp";
                 udp = std::any_cast<udp_header>(packet[3]);
             }
-
+        }
+        if(packet.size()>=5){
             if(packet[4].type()==typeid(dns_packet)){
                 app = "dns";
                 dns = std::any_cast<dns_packet>(packet[4]);
             }
-        }
-        else{
-            type = "other";
-            header = "其他协议";
-        }
+        }          
     }
 };
