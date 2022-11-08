@@ -295,6 +295,7 @@ MainWindow::MainWindow(QWidget* parent)
         if(this->stop){
             this->stop = false;
             this->dev = new device(devices.open(this->device_choose));
+            // this->dev->set_filter("dns");
             this->dev->start_capture();
             timer->start(50);
         }    
