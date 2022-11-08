@@ -18,6 +18,8 @@ class analysis{
     QString desIp = "";
     // 协议类型
     QString header = "";
+    //应用层
+    QString app = "";
     //源数据
     QString rawdata = "空";
 
@@ -35,6 +37,9 @@ class analysis{
     tcp_header tcp;
     // 处理udp
     udp_header udp;
+
+    //处理dns
+    dns_packet dns;
 
 
     analysis(std::vector<std::any> packet){
@@ -84,6 +89,11 @@ class analysis{
                 header = "udp";
                 udp = std::any_cast<udp_header>(packet[3]);
             }
+            
+            if(packet[4].type()==typeid(dns_packet)){
+                app = "dns";
+                dns = std::any_cast<dns_packet>(packet[4]);
+            }
 
         }
         else if(packet[2].type() == typeid(arp_packet)){
@@ -110,7 +120,19 @@ class analysis{
             desIp = QString::fromStdString(buf2);
             len = QString::number((int)ipv6.payload_len);
 
+            if(packet[3].type() == typeid(tcp_header)){
+                header = "tcp";
+                tcp = std::any_cast<tcp_header>(packet[3]);
+            }
+            else if(packet[3].type() == typeid(udp_header)){
+                header = "udp";
+                udp = std::any_cast<udp_header>(packet[3]);
+            }
 
+            if(packet[4].type()==typeid(dns_packet)){
+                app = "dns";
+                dns = std::any_cast<dns_packet>(packet[4]);
+            }
         }
         else{
             type = "other";
