@@ -15,6 +15,20 @@ struct Count{
     std::vector<int> other_app_c;
 };
 
+struct Count_time{
+    QDateTime time;
+    int ipv4;
+    int ipv6;
+    int arp;
+    int other;
+    int icmp;
+    int tcp;
+    int udp;
+    int other_h;
+    int dns;
+    int other_a;
+};
+
 //用于分析的类，直接用packet创建，然后用其成员变量
 class analysis{
     public:

@@ -4,7 +4,6 @@
 #include "charts.h"
 #include <QMainWindow>
 #include <QTimer>
-#include <QDateTime>
 #include <QStandardItemModel>
 
 QT_BEGIN_NAMESPACE
@@ -30,6 +29,8 @@ private:
     QStandardItemModel *model;
     QStandardItemModel *t_model;
     Count count;
+    std::vector<Count_time> count_t;
+
     //i为packets中packet的下标
     void addRow(int i);
     void showDetails(int i);

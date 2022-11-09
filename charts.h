@@ -15,18 +15,9 @@ class charts : public QDialog{
 public:
     charts(QWidget *parent = nullptr);
     ~charts();
-    void setCount(Count c);
+    void setCount(std::vector<Count_time> c);
 
 private:
     Ui::Dialog *ui;
-    int ipv4;
-    int ipv6;
-    int arp;
-    int other;
-    int icmp;
-    int tcp;
-    int udp;
-    int other_h;
-    int dns;
-    int other_a;
+    std::vector<Count_time> count_t;
 };
