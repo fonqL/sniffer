@@ -49,6 +49,11 @@ target_link_directories(sniffer PRIVATE ./NpCap/Lib/x64)
 target_link_libraries(sniffer PRIVATE Packet wpcap Ws2_32)
 
 target_link_libraries(sniffer PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Charts)
+target_link_libraries(sniffer PRIVATE
+    Qt::Charts
+)
+
 set_target_properties(sniffer PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}

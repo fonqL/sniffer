@@ -6,6 +6,7 @@
 #include <QDateTime>
 #include <QStandardItemModel>
 #include "analysis.h"
+#include <QtCharts>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
