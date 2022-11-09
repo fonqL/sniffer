@@ -16,6 +16,8 @@ public:
     charts(QWidget *parent = nullptr);
     ~charts();
     void setCount(std::vector<Count_time> c);
+    int sc_value;
+    int s;
 
 private:
     Ui::Dialog *ui;

@@ -370,8 +370,8 @@ MainWindow::MainWindow(QWidget* parent)
                 bool error = this->dev->set_filter(this->catch_filt.toStdString());
             } 
             this->dev->start_capture();
-            timer->start(50);
-            timer_record->start(9000);
+            timer->start(10);
+            timer_record->start(10000);
             this->hadClear = false;
         }    
     });
