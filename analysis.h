@@ -91,7 +91,7 @@ class analysis{
         }
         else if(packet[2].type() == typeid(ipv6_header)){
             type = "IPv6";
-            header = "ipv6";
+            header = "ipv4";
             ipv6 = std::any_cast<ipv6_header>(packet[2]);
             char buf1[20] = { 0 };
             inet_ntop(AF_INET6, ipv6.src, buf1, sizeof(buf1));
@@ -103,7 +103,6 @@ class analysis{
         }
         else{
             type = "other";
-            header = "其他协议";
         }
 
         if(packet.size()>=4){
@@ -119,11 +118,17 @@ class analysis{
                 header = "udp";
                 udp = std::any_cast<udp_header>(packet[3]);
             }
+            else{
+                header = "other";
+            }
         }
         if(packet.size()>=5){
             if(packet[4].type()==typeid(dns_packet)){
                 app = "dns";
                 dns = std::any_cast<dns_packet>(packet[4]);
+            }
+            else{
+                app = "other";
             }
         }          
     }

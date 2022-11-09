@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>695</width>
-    <height>536</height>
+    <width>728</width>
+    <height>602</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -22,27 +22,6 @@
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout_2">
     <item row="0" column="0">
-     <layout class="QVBoxLayout" name="verticalLayout_3">
-      <property name="bottomMargin">
-       <number>15</number>
-      </property>
-      <item>
-       <widget class="QLabel" name="label_text">
-        <property name="text">
-         <string>测试信息</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPushButton" name="pushButton_text">
-        <property name="text">
-         <string>PushButton</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    <item row="1" column="0">
      <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,2">
       <item>
        <layout class="QFormLayout" name="formLayout_3">
@@ -87,6 +66,24 @@
         <item row="0" column="1">
          <widget class="QLineEdit" name="lineEdit"/>
         </item>
+        <item row="1" column="1">
+         <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <item>
+           <widget class="QPushButton" name="pushButton_3">
+            <property name="text">
+             <string>显示过滤</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_4">
+            <property name="text">
+             <string>抓包过滤</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
        </layout>
       </item>
      </layout>
@@ -108,7 +105,7 @@
          </font>
         </property>
        </widget>
-       <widget class="QWidget" name="">
+       <widget class="QWidget" name="layoutWidget">
         <layout class="QVBoxLayout" name="verticalLayout">
          <item>
           <widget class="QTextEdit" name="data">
@@ -119,6 +116,9 @@
             </font>
            </property>
           </widget>
+         </item>
+         <item>
+          <widget class="QTextEdit" name="textEdit"/>
          </item>
          <item>
           <layout class="QGridLayout" name="gridLayout">
@@ -133,6 +133,20 @@
             <widget class="QPushButton" name="pushButton">
              <property name="text">
               <string>结束</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="2">
+            <widget class="QPushButton" name="pushButton_5">
+             <property name="text">
+              <string>清空</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="3">
+            <widget class="QPushButton" name="pushButton_6">
+             <property name="text">
+              <string>显示统计图</string>
              </property>
             </widget>
            </item>

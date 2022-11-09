@@ -4,6 +4,38 @@
 void MainWindow::addRow(int i){
     
     analysis *ana = new analysis(this->packets->at(i));
+    if(ana->type=="IPv4"){
+        this->count.ipv4_c.push_back(i);
+    }
+    else if(ana->type=="IPv6"){
+        this->count.ipv6_c.push_back(i);
+    }
+    else if(ana->type=="ARP"){
+        this->count.arp_c.push_back(i);
+    } 
+    else if(ana->type=="other"){
+        this->count.other_c.push_back(i);
+    }
+
+    if(ana->header=="icmp"){
+        this->count.icmp_c.push_back(i);
+    }
+    else if(ana->header=="tcp"){
+        this->count.tcp_c.push_back(i);
+    }
+    else if(ana->header=="udp"){
+        this->count.udp_c.push_back(i);
+    }
+    else if(ana->header=="other"){
+        this->count.other_header_c.push_back(i);
+    }
+
+    if(ana->app=="dns"){
+        this->count.dns_c.push_back(i);
+    }
+    else if(ana->app=="other"){
+        this->count.other_app_c.push_back(i);
+    }
 
     this->model->appendRow(
         QList<QStandardItem *>()
@@ -22,9 +54,12 @@ void MainWindow::showDetails(int i){
     if(i>=this->packets->size()){
         return;
     }
+    
 
     QStandardItemModel* model = new QStandardItemModel(ui->treeView);
 
+    this->t_model = model;
+    this->hadDetails = true;
     model->setHorizontalHeaderLabels(QStringList()<<("第"+QString::number(i+1)+"个包"));
 
     QStandardItem* eth_d = new QStandardItem("以太头");
@@ -162,7 +197,6 @@ void MainWindow::showDetails(int i){
     }
 
     if(ana->app=="dns"){
-        ui->label_text->setText(QString::number(i)+"!!!");
         QStandardItem* dns_d = new QStandardItem("dns");
         model->appendRow(dns_d);
         dns_d->appendRow(new QStandardItem("事物id: "+QString::asprintf("%d", ana->dns.id)));
@@ -240,6 +274,8 @@ MainWindow::MainWindow(QWidget* parent)
     // 点击开始抓包按钮后可以用这个值
     this->device_choose = 0;
     this->stop = true;
+    this->hadClear = true;
+    this->hadDetails = false;
     this->packets = new std::vector< std::vector<std::any> >();
     this->model = new QStandardItemModel(this);
 
@@ -251,11 +287,6 @@ MainWindow::MainWindow(QWidget* parent)
         this->device_choose = (uint)ui->comboBox->currentIndex();
     });
 
-    //最顶部的那个label和button是用来测试输出的，到时候再删掉
-    connect(ui->pushButton_text, &QPushButton::clicked, this, [=]() {
-        ui->label_text->setText(x[this->device_choose]);
-    });
-
     //点击查看包详细内容
     connect(ui->tableView, &QTableView::clicked, this, [this](){
         int row = ui-> tableView ->currentIndex().row();
@@ -263,7 +294,6 @@ MainWindow::MainWindow(QWidget* parent)
         QString id = this->model->data(index1).toString();
         int i = id.toInt();
         this->showDetails(i-1);
-        ui->label_text->setText(id);
     });
 
     QTimer* timer = new QTimer(this);
@@ -284,11 +314,19 @@ MainWindow::MainWindow(QWidget* parent)
                 this->addRow(index-1);
                 ui->tableView->scrollToBottom();
             }
-            //处理以太帧...
-            //  //第一项肯定是以太头
+            
+
         } else {
             
         }
+
+        ui->textEdit->setText(QString::asprintf(
+            "ipv4: %d  ipv6: %d  arp: %d  other %d\nicmp: %d  tcp: %d  udp %d  other %d\ndns: %d  other: %d",
+            this->count.ipv4_c.size(),this->count.ipv6_c.size(),this->count.arp_c.size(),this->count.other_c.size(),
+            this->count.icmp_c.size(),this->count.tcp_c.size(),this->count.udp_c.size(),this->count.other_header_c.size(),
+            this->count.dns_c.size(),this->count.other_app_c.size()
+        ));
+
     });
     //开启线程
     connect(ui->pushButton_2, &QPushButton::clicked, this, [=, devices = std::move(devices)]()mutable {
@@ -298,9 +336,11 @@ MainWindow::MainWindow(QWidget* parent)
             // this->dev->set_filter("dns");
             this->dev->start_capture();
             timer->start(50);
+            this->hadClear = false;
         }    
     });
 
+    //结束抓包
     connect(ui->pushButton, &QPushButton::clicked, this, [=]() {
         if(!this->stop){
             this->stop = true;
@@ -309,6 +349,40 @@ MainWindow::MainWindow(QWidget* parent)
             delete this->dev;
         }
         
+    });
+
+    //显示统计图
+    connect(ui->pushButton_6, &QPushButton::clicked, this, [=](){
+        
+
+    });
+
+    //清空
+    connect(ui->pushButton_5, &QPushButton::clicked, this, [=](){
+        if(this->stop&&!this->hadClear){
+            this->packets->clear();
+            this->model->clear();
+            model->setHorizontalHeaderLabels(QStringList()<<"序号"<<"时间"<<"协议"<<"源ip"<<"目的ip"<<"长度");
+
+            this->count.ipv4_c.clear();
+            this->count.ipv6_c.clear();
+            this->count.arp_c.clear();
+            this->count.other_c.clear();
+            this->count.icmp_c.clear();
+            this->count.tcp_c.clear();
+            this->count.udp_c.clear();
+            this->count.other_header_c.clear();
+            this->count.dns_c.clear();
+            this->count.other_app_c.clear();
+
+            ui->textEdit->clear();
+            ui->data->clear();
+            if(this->hadDetails){
+                this->t_model->clear();
+            }
+            this->hadClear = true;
+            this->hadDetails = false;
+        }
     });
 
 }
