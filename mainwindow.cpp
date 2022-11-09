@@ -1,6 +1,20 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 
+void MainWindow::showRow(int i){
+    analysis *ana = new analysis(this->packets->at(i));
+    this->model->appendRow(
+        QList<QStandardItem *>()
+            << new QStandardItem(QString::number(i+1))
+            << new QStandardItem(ana->time)
+            << new QStandardItem(ana->header)
+            << new QStandardItem(ana->srcIp)
+            << new QStandardItem(ana->desIp)
+            << new QStandardItem(ana->len)
+        //  << new QStandardItem()
+    );
+}
+
 void MainWindow::addRow(int i){
     
     analysis *ana = new analysis(this->packets->at(i));
@@ -36,17 +50,7 @@ void MainWindow::addRow(int i){
     else if(ana->app=="other"){
         this->count.other_app_c.push_back(i);
     }
-
-    this->model->appendRow(
-        QList<QStandardItem *>()
-            << new QStandardItem(QString::number(i+1))
-            << new QStandardItem(ana->time)
-            << new QStandardItem(ana->header)
-            << new QStandardItem(ana->srcIp)
-            << new QStandardItem(ana->desIp)
-            << new QStandardItem(ana->len)
-        //  << new QStandardItem()
-    );
+    this->showRow(i);
 }
 
 void MainWindow::showDetails(int i){
@@ -296,6 +300,17 @@ MainWindow::MainWindow(QWidget* parent)
         this->showDetails(i-1);
     });
 
+    this->catch_filt = "";
+    this->show_filt = "";
+    this->catch_f = false;
+    this->show_f = false;
+
+    //抓包过滤
+    connect(ui->pushButton_4, &QPushButton::clicked, this, [=](){
+        this->catch_f = true;
+        this->catch_filt = ui->lineEdit->text();
+    });
+
     QTimer* timer = new QTimer(this);
     connect(timer, &QTimer::timeout, [this]()mutable {
         // device_list devices;
@@ -333,7 +348,9 @@ MainWindow::MainWindow(QWidget* parent)
         if(this->stop){
             this->stop = false;
             this->dev = new device(devices.open(this->device_choose));
-            // this->dev->set_filter("dns");
+            if(this->catch_f){
+                bool error = this->dev->set_filter(this->catch_filt.toStdString());
+            } 
             this->dev->start_capture();
             timer->start(50);
             this->hadClear = false;
@@ -353,8 +370,9 @@ MainWindow::MainWindow(QWidget* parent)
 
     //显示统计图
     connect(ui->pushButton_6, &QPushButton::clicked, this, [=](){
-        
-
+        charts *ch = new charts();
+        ch->setCount(this->count);
+        ch->show();
     });
 
     //清空

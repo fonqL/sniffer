@@ -82,6 +82,13 @@
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_7">
+            <property name="text">
+             <string>清除过滤</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </item>
        </layout>
