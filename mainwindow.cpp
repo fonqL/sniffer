@@ -323,7 +323,7 @@ MainWindow::MainWindow(QWidget* parent)
                 this->show_filt = ui->lineEdit->text();
                 //这里开始 hh
 
-                
+
 
 
             }
@@ -344,7 +344,7 @@ MainWindow::MainWindow(QWidget* parent)
         ui->lineEdit->clear();
     });
 
-    //保存
+    //保存 fq
     connect(ui->pushButton_8, &QPushButton::clicked, this, [=](){
         if(this->stop){//停止抓包后才能保存
 
