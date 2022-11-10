@@ -280,6 +280,7 @@ MainWindow::MainWindow(QWidget* parent)
     this->stop = true;
     this->hadClear = true;
     this->hadDetails = false;
+    this->openFile = false;
     this->packets = new std::vector< std::vector<std::any> >();
     this->model = new QStandardItemModel(this);
 
@@ -305,16 +306,66 @@ MainWindow::MainWindow(QWidget* parent)
     this->catch_f = false;
     this->show_f = false;
 
+    //显示过滤
+    connect(ui->pushButton_3, &QPushButton::clicked, this, [=](){
+        if(this->stop){
+            if(!this->hadClear){
+                this->model->clear();
+                this->model->setHorizontalHeaderLabels(QStringList()<<"序号"<<"时间"<<"协议"<<"源ip"<<"目的ip"<<"长度");
+                ui->textEdit->clear();
+                ui->data->clear();
+                if(this->hadDetails){
+                    this->t_model->clear();
+                }
+                this->hadClear = true;
+                this->hadDetails = false;
+
+                this->show_filt = ui->lineEdit->text();
+                //这里开始 hh
+
+                
+
+
+            }
+        }
+    });
+
     //抓包过滤
     connect(ui->pushButton_4, &QPushButton::clicked, this, [=](){
         this->catch_f = true;
         this->catch_filt = ui->lineEdit->text();
     });
 
+    //清除过滤
+    connect(ui->pushButton_7, &QPushButton::clicked, this, [=](){
+        this->catch_f = false;
+        this->catch_filt = "";
+        this->show_filt = "";
+        ui->lineEdit->clear();
+    });
+
+    //保存
+    connect(ui->pushButton_8, &QPushButton::clicked, this, [=](){
+        if(this->stop){//停止抓包后才能保存
+
+
+
+        }
+    });
+
+    //打开  fq
+    connect(ui->pushButton_9, &QPushButton::clicked, this, [=](){
+        if(this->hadClear){//清空抓包界面才能打开
+            
+            this->openFile = true;
+
+            //this->fileName获取文件名
+
+        }
+    });
+
     QTimer* timer = new QTimer(this);
     connect(timer, &QTimer::timeout, [this]()mutable {
-        // device_list devices;
-        //设置过滤规则
 
         std::vector<std::any> packet = this->dev->try_get();
 
@@ -324,7 +375,6 @@ MainWindow::MainWindow(QWidget* parent)
 
             int index = this->packets->size();
 
-            //在这里进行过滤
             if(true){
                 this->addRow(index-1);
                 ui->tableView->scrollToBottom();
@@ -368,12 +418,20 @@ MainWindow::MainWindow(QWidget* parent)
     //开启线程
     connect(ui->pushButton_2, &QPushButton::clicked, this, [=, devices = std::move(devices)]()mutable {
         if(this->stop){
-            this->stop = false;
-            this->dev = new device(devices.open(this->device_choose));
-            if(this->catch_f){
-                bool error = this->dev->set_filter(this->catch_filt.toStdString());
-            } 
-            this->dev->start_capture();
+            if(!this->openFile){
+                this->stop = false;
+                this->dev = new device(devices.open(this->device_choose));
+                if(this->catch_f){
+                    bool error = this->dev->set_filter(this->catch_filt.toStdString());
+                } 
+                this->dev->start_capture();
+            }
+            else{
+                //fq
+                //this->dev = 
+
+
+            }
             timer->start(10);
             timer_record->start(1000);
             this->hadClear = false;

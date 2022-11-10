@@ -24,6 +24,9 @@ private:
     bool stop;
     bool hadClear;
     bool hadDetails;
+
+    bool openFile;
+    QString fileName;
     device* dev;
     std::vector<std::vector<std::any> > *packets;
     QStandardItemModel *model;
