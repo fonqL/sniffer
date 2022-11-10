@@ -91,7 +91,7 @@ class analysis{
         eth.dst[2], eth.dst[3], eth.dst[4], eth.dst[5]);
         desMac = QString(QLatin1String(buf));
 
-        time = info.t.toString("yyyy-MM-dd hh:mm:ss");
+        time = info.t.toString("hh:mm:ss");
 
         if(packet[2].type() == typeid(ipv4_header)){
             type = "IPv4";
