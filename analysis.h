@@ -1,6 +1,34 @@
 #include "handle_packet.h"
 #include "protocol.h"
 
+//计数类
+struct Count{
+    std::vector<int> ipv4_c;
+    std::vector<int> ipv6_c;
+    std::vector<int> arp_c;
+    std::vector<int> other_c;
+    std::vector<int> icmp_c;
+    std::vector<int> tcp_c;
+    std::vector<int> udp_c;
+    std::vector<int> other_header_c;
+    std::vector<int> dns_c;
+    std::vector<int> other_app_c;
+};
+
+struct Count_time{
+    QDateTime time;
+    int ipv4;
+    int ipv6;
+    int arp;
+    int other;
+    int icmp;
+    int tcp;
+    int udp;
+    int other_h;
+    int dns;
+    int other_a;
+};
+
 //用于分析的类，直接用packet创建，然后用其成员变量
 class analysis{
     public:
@@ -63,7 +91,7 @@ class analysis{
         eth.dst[2], eth.dst[3], eth.dst[4], eth.dst[5]);
         desMac = QString(QLatin1String(buf));
 
-        time = info.t.toString("yyyy-MM-dd hh:mm:ss");
+        time = info.t.toString("hh:mm:ss");
 
         if(packet[2].type() == typeid(ipv4_header)){
             type = "IPv4";
@@ -103,6 +131,7 @@ class analysis{
         }
         else{
             type = "other";
+            header = "other";
         }
 
         if(packet.size()>=4){

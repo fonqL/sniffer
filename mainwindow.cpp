@@ -1,6 +1,20 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 
+void MainWindow::showRow(int i){
+    analysis *ana = new analysis(this->packets->at(i));
+    this->model->appendRow(
+        QList<QStandardItem *>()
+            << new QStandardItem(QString::number(i+1))
+            << new QStandardItem(ana->time)
+            << new QStandardItem(ana->header)
+            << new QStandardItem(ana->srcIp)
+            << new QStandardItem(ana->desIp)
+            << new QStandardItem(ana->len)
+        //  << new QStandardItem()
+    );
+}
+
 void MainWindow::addRow(int i){
     
     analysis *ana = new analysis(this->packets->at(i));
@@ -36,17 +50,7 @@ void MainWindow::addRow(int i){
     else if(ana->app=="other"){
         this->count.other_app_c.push_back(i);
     }
-
-    this->model->appendRow(
-        QList<QStandardItem *>()
-            << new QStandardItem(QString::number(i+1))
-            << new QStandardItem(ana->time)
-            << new QStandardItem(ana->header)
-            << new QStandardItem(ana->srcIp)
-            << new QStandardItem(ana->desIp)
-            << new QStandardItem(ana->len)
-        //  << new QStandardItem()
-    );
+    this->showRow(i);
 }
 
 void MainWindow::showDetails(int i){
@@ -296,6 +300,17 @@ MainWindow::MainWindow(QWidget* parent)
         this->showDetails(i-1);
     });
 
+    this->catch_filt = "";
+    this->show_filt = "";
+    this->catch_f = false;
+    this->show_f = false;
+
+    //抓包过滤
+    connect(ui->pushButton_4, &QPushButton::clicked, this, [=](){
+        this->catch_f = true;
+        this->catch_filt = ui->lineEdit->text();
+    });
+
     QTimer* timer = new QTimer(this);
     connect(timer, &QTimer::timeout, [this]()mutable {
         // device_list devices;
@@ -328,14 +343,39 @@ MainWindow::MainWindow(QWidget* parent)
         ));
 
     });
+
+    // 用于记录时间下包数量
+    QTimer* timer_record = new QTimer(this);
+    connect(timer_record, &QTimer::timeout, [this]()mutable {
+
+        if(this->packets->size()>0){
+            Count_time c_t;
+            c_t.time = QDateTime::currentDateTime();
+            c_t.arp = this->count.arp_c.size();
+            c_t.ipv4 = this->count.ipv4_c.size();
+            c_t.ipv6 = this->count.ipv6_c.size();
+            c_t.other = this->count.other_c.size();
+            c_t.icmp = this->count.icmp_c.size();
+            c_t.tcp = this->count.tcp_c.size();
+            c_t.udp = this->count.udp_c.size();
+            c_t.other_h = this->count.other_header_c.size();
+            c_t.dns = this->count.dns_c.size();
+            c_t.other_a = this->count.other_app_c.size();
+            this->count_t.push_back(c_t);
+        }
+    });
+
     //开启线程
     connect(ui->pushButton_2, &QPushButton::clicked, this, [=, devices = std::move(devices)]()mutable {
         if(this->stop){
             this->stop = false;
             this->dev = new device(devices.open(this->device_choose));
-            // this->dev->set_filter("dns");
+            if(this->catch_f){
+                bool error = this->dev->set_filter(this->catch_filt.toStdString());
+            } 
             this->dev->start_capture();
-            timer->start(50);
+            timer->start(10);
+            timer_record->start(1000);
             this->hadClear = false;
         }    
     });
@@ -345,6 +385,7 @@ MainWindow::MainWindow(QWidget* parent)
         if(!this->stop){
             this->stop = true;
             timer->stop();
+            timer_record->stop();
             this->dev->stop();
             delete this->dev;
         }
@@ -353,8 +394,11 @@ MainWindow::MainWindow(QWidget* parent)
 
     //显示统计图
     connect(ui->pushButton_6, &QPushButton::clicked, this, [=](){
-        
-
+        if(this->stop){
+            charts *ch = new charts();
+            ch->setCount(this->count_t);
+            ch->show();
+        }
     });
 
     //清空
@@ -374,6 +418,8 @@ MainWindow::MainWindow(QWidget* parent)
             this->count.other_header_c.clear();
             this->count.dns_c.clear();
             this->count.other_app_c.clear();
+
+            this->count_t.clear();
 
             ui->textEdit->clear();
             ui->data->clear();

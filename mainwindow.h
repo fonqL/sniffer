@@ -1,29 +1,14 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "charts.h"
 #include <QMainWindow>
 #include <QTimer>
-#include <QDateTime>
 #include <QStandardItemModel>
-#include "analysis.h"
-#include <QtCharts>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
-
-struct Count{
-    std::vector<int> ipv4_c;
-    std::vector<int> ipv6_c;
-    std::vector<int> arp_c;
-    std::vector<int> other_c;
-    std::vector<int> icmp_c;
-    std::vector<int> tcp_c;
-    std::vector<int> udp_c;
-    std::vector<int> other_header_c;
-    std::vector<int> dns_c;
-    std::vector<int> other_app_c;
-};
 
 class MainWindow : public QMainWindow
 {
@@ -44,8 +29,15 @@ private:
     QStandardItemModel *model;
     QStandardItemModel *t_model;
     Count count;
+    std::vector<Count_time> count_t;
+
     //i为packets中packet的下标
     void addRow(int i);
     void showDetails(int i);
+    void showRow(int i);
+    QString catch_filt;
+    QString show_filt;
+    bool catch_f;
+    bool show_f;
 };
 #endif // MAINWINDOW_H
