@@ -18,6 +18,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
 file(GLOB PROJECT_SOURCES
         "*.cpp"
+        ".h"
         "*.ui"
 )
 
