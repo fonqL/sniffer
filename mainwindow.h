@@ -1,11 +1,11 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "showfilter.h"
+#include "charts.h"
+#include "filter.h"
 #include <QMainWindow>
 #include <QTimer>
 #include <QStandardItemModel>
-
 
 
 QT_BEGIN_NAMESPACE

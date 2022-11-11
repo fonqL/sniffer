@@ -1,6 +1,5 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
-#include "filter.h"
 
 void MainWindow::showRow(int i){
     if(this->model->rowCount()>(this->MAXSHOW-1)){
