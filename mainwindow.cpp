@@ -1,7 +1,11 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 
-void MainWindow::showRow(int i, analysis& ana) {
+void MainWindow::showRow(int i) {
+    analysis ana(this->packets.at(i));
+    if (this->model->rowCount() > (this->MAXSHOW - 1)) {
+        this->model->removeRow(this->model->rowCount() - this->MAXSHOW);
+    }
     this->model->appendRow({
         new QStandardItem(QString::number(i + 1)),
         new QStandardItem(ana.time),
@@ -39,7 +43,7 @@ void MainWindow::addRow(int i) {
     } else if (ana.app == "other") {
         this->count.other_app_c.push_back(i);
     }
-    this->showRow(i, ana);
+    this->showRow(i);
 }
 
 void MainWindow::showDetails(int i) {
@@ -279,6 +283,7 @@ MainWindow::MainWindow(QWidget* parent)
     this->show_filt = "";
     this->catch_f = false;
     this->show_f = false;
+    ui->spinBox->setRange(1, 1);
 
     //显示过滤
     connect(ui->pushButton_3, &QPushButton::clicked, this, [=]() {
@@ -406,7 +411,7 @@ MainWindow::MainWindow(QWidget* parent)
                 this->dev->start_capture();
             }
             timer->start(10);
-            timer_record->start(1000);
+            timer_record->start(900000);
             this->hadClear = false;
         }
     });
@@ -419,6 +424,31 @@ MainWindow::MainWindow(QWidget* parent)
             timer_record->stop();
             this->dev->stop();
             this->dev.reset();
+            int max = this->packets.size() / this->MAXSHOW;
+            max += this->packets.size() % this->MAXSHOW ? 1 : 0;
+
+            ui->spinBox->setRange(1, max);
+        }
+    });
+
+    connect(ui->pushButton_10, &QPushButton::clicked, this, [=]() {
+        if (this->stop) {
+            if (!this->hadClear) {
+                this->model->clear();
+                model->setHorizontalHeaderLabels({
+                    "序号",
+                    "时间",
+                    "协议",
+                    "源ip",
+                    "目的ip",
+                    "长度",
+                });
+                for (int i = (ui->spinBox->value() - 1) * this->MAXSHOW; i < ui->spinBox->value() * this->MAXSHOW; i++) {
+                    if (i < this->packets.size()) {
+                        this->showRow(i);
+                    }
+                }
+            }
         }
     });
 
