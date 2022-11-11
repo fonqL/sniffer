@@ -1,11 +1,13 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
+#include "filter.h"
 
 void MainWindow::showRow(int i) {
-    analysis ana(this->packets.at(i));
     if (this->model->rowCount() > (this->MAXSHOW - 1)) {
         this->model->removeRow(this->model->rowCount() - this->MAXSHOW);
     }
+
+    analysis ana(this->packets.at(i));
     this->model->appendRow({
         new QStandardItem(QString::number(i + 1)),
         new QStandardItem(ana.time),
@@ -13,6 +15,7 @@ void MainWindow::showRow(int i) {
         new QStandardItem(ana.srcIp),
         new QStandardItem(ana.desIp),
         new QStandardItem(ana.len),
+        // new QStandardItem()
     });
 }
 
@@ -283,7 +286,6 @@ MainWindow::MainWindow(QWidget* parent)
     this->show_filt = "";
     this->catch_f = false;
     this->show_f = false;
-    ui->spinBox->setRange(1, 1);
 
     //显示过滤
     connect(ui->pushButton_3, &QPushButton::clicked, this, [=]() {
@@ -305,9 +307,20 @@ MainWindow::MainWindow(QWidget* parent)
                 }
                 this->hadClear = true;
                 this->hadDetails = false;
-
                 this->show_filt = ui->lineEdit->text();
-                //这里开始 hh
+
+                //-------------------这里开始 hh
+                if (is_a_sentence(this->show_filt)) { //判断语法
+                    std::vector<int> show_result = catched_filter(this->show_filt.toStdString());
+                    if (show_result.size() != 0) {
+                        for (int i = 0; i < show_result.size(); i++)
+                            showRow(show_result[i]);
+                    } else {
+                        //过滤结果为空
+                    }
+                } else {
+                    //报错：语法错误
+                }
             }
         }
     });
@@ -411,7 +424,7 @@ MainWindow::MainWindow(QWidget* parent)
                 this->dev->start_capture();
             }
             timer->start(10);
-            timer_record->start(900000);
+            timer_record->start(1000);
             this->hadClear = false;
         }
     });
