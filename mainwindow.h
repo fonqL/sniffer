@@ -1,16 +1,13 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "charts.h"
+#include "showfilter.h"
 #include <QMainWindow>
 #include <QTimer>
 #include <QStandardItemModel>
 
-/*-------LHH-----------*/
-#include <regex>
-#include <sstream>
-#include <string>
-/*-------------------*/
+
+
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -39,6 +36,9 @@ private:
     QStandardItemModel *t_model;
     Count count;
     std::vector<Count_time> count_t;
+    const int MAXSHOW = 20;
+
+    std::vector<int> show_result;
 
     //i为packets中packet的下标
     void addRow(int i);

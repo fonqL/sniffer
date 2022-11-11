@@ -13,6 +13,10 @@ std::regex _equal("==");
 std::regex _not_eq("!=");
 
 void MainWindow::showRow(int i){
+    if(this->model->rowCount()>(this->MAXSHOW-1)){
+        this->model->removeRow(this->model->rowCount()-this->MAXSHOW);
+    }
+
     analysis *ana = new analysis(this->packets->at(i));
     this->model->appendRow(
         QList<QStandardItem *>()
@@ -316,6 +320,7 @@ MainWindow::MainWindow(QWidget* parent)
     this->show_filt = "";
     this->catch_f = false;
     this->show_f = false;
+    ui->spinBox->setRange(1, 1);
 
     //显示过滤
     connect(ui->pushButton_3, &QPushButton::clicked, this, [=](){
@@ -323,21 +328,26 @@ MainWindow::MainWindow(QWidget* parent)
             if(!this->hadClear){
                 this->model->clear();
                 this->model->setHorizontalHeaderLabels(QStringList()<<"序号"<<"时间"<<"协议"<<"源ip"<<"目的ip"<<"长度");
-                ui->textEdit->clear();
                 ui->data->clear();
                 if(this->hadDetails){
                     this->t_model->clear();
                 }
-                this->hadClear = true;
                 this->hadDetails = false;
                 this->show_filt = ui->lineEdit->text();
+                this->show_f = true;
 
                 //-------------------这里开始 hh
                 if (is_a_sentence(this->show_filt)){//判断语法
-                    std::vector<int> show_result = catched_filter(this->show_filt.toStdString());
+                    show_result = catched_filter(this->show_filt.toStdString());
                     if (show_result.size() != 0) {
                         for (int i = 0;i < show_result.size();i++)
                             showRow(show_result[i]);
+                        int max = show_result.size()/this->MAXSHOW;
+                        max += show_result.size()%this->MAXSHOW?1:0;
+
+                        ui->spinBox->setRange(1, max);
+                        ui->spinBox->setValue(max);
+                        ui->label_2->setText(QString::asprintf("共%d页", max));
                     }
                     else {
                         //过滤结果为空
@@ -360,8 +370,23 @@ MainWindow::MainWindow(QWidget* parent)
     connect(ui->pushButton_7, &QPushButton::clicked, this, [=](){
         this->catch_f = false;
         this->catch_filt = "";
+        this->show_f = false;
         this->show_filt = "";
         ui->lineEdit->clear();
+        if(this->packets->size()>0){
+            for (int i = this->packets->size()-this->MAXSHOW;i < this->packets->size();i++){
+                if(i>=0){
+                    showRow(i);
+                }
+            }
+                
+            int max = this->packets->size()/this->MAXSHOW;
+            max += this->packets->size()%this->MAXSHOW?1:0;
+
+            ui->spinBox->setRange(1, max);
+            ui->spinBox->setValue(max);
+            ui->label_2->setText(QString::asprintf("共%d页", max));
+        }     
     });
 
     //保存 fq
@@ -466,8 +491,34 @@ MainWindow::MainWindow(QWidget* parent)
             timer_record->stop();
             this->dev->stop();
             delete this->dev;
+
+            int max = this->packets->size()/this->MAXSHOW;
+            max += this->packets->size()%this->MAXSHOW?1:0;
+
+            ui->spinBox->setRange(1, max);
+            ui->label_2->setText(QString::asprintf("共%d页", max));
         }
         
+    });
+
+    //跳转
+    connect(ui->pushButton_10, &QPushButton::clicked, this, [=](){
+        if(this->stop){
+            if(!this->hadClear){
+                this->model->clear();
+                model->setHorizontalHeaderLabels(QStringList()<<"序号"<<"时间"<<"协议"<<"源ip"<<"目的ip"<<"长度");
+                for(int i = (ui->spinBox->value()-1)*this->MAXSHOW; i<ui->spinBox->value()*this->MAXSHOW; i++){
+                    if(i<this->packets->size()){
+                        if(this->show_f){
+                            this->showRow(show_result[i]);
+                        }
+                        else{
+                            this->showRow(i);
+                        }
+                    }                   
+                }
+            }
+        }
     });
 
     //显示统计图
