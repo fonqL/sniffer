@@ -301,7 +301,6 @@ MainWindow::MainWindow(QWidget* parent)
                     "目的ip",
                     "长度",
                 });
-                ui->textEdit->clear();
                 ui->data->clear();
                 if (this->hadDetails) {
                     this->t_model->clear();
