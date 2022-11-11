@@ -36,6 +36,8 @@ private:
     Count count;
     std::vector<Count_time> count_t;
 
+    std::vector<int> show_result;
+
     const int MAXSHOW = 20;
 
     //i为packets中packet的下标
