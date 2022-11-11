@@ -1,3 +1,5 @@
+#pragma once
+
 #include "handle_packet.h"
 #include "protocol.h"
 
