@@ -9,6 +9,8 @@
 //
 // 使用例见最后
 
+const QString DEFAULT_FILENAME = "./cap";
+
 struct simple_info {
     QDateTime t;
     std::vector<uint8_t> raw_data;
@@ -43,10 +45,12 @@ public:
 
     //返回语法检查结果。正确为true，错误为false。不许忽视结果
     [[nodiscard]] bool
-    set_filter(std::string_view filter);
+    set_filter(std::string filter);
 
     //不会阻塞，可能失败，失败时vec.empty() == true
     std::vector<std::any> try_get();
+
+    std::vector<std::vector<std::any>> get_all();
 
     void start_capture();
 };
@@ -76,7 +80,7 @@ public:
     device open(uint i) const;
 };
 
-device open_file(std::string_view file_name);
+device open_file(const QString& file_name);
 
 // 使用例
 // #include "handle_packet.h"

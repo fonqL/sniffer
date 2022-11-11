@@ -1,6 +1,7 @@
 #include <condition_variable>
 #include <memory>
 #include <mutex>
+#include <vector>
 
 template<typename T>
 class SafeQueue {
@@ -28,11 +29,16 @@ public:
           tail(header.get()) {
     }
 
+    ~SafeQueue() {
+        while (header != nullptr) {
+            header = std::move(header->next);
+        }
+    };
+
     SafeQueue(const SafeQueue&) = delete;
     SafeQueue(SafeQueue&&) = delete;
     SafeQueue& operator=(const SafeQueue&) = delete;
     SafeQueue& operator=(SafeQueue&&) = delete;
-    ~SafeQueue() = default;
 
 private:
     Node* getTail() {
@@ -69,6 +75,16 @@ public:
             return T{};
         auto ret = std::move(header->data);
         header = std::move(header->next);
+        return ret;
+    }
+
+    std::vector<T> popAll() {
+        std::scoped_lock lcks{headerMutex, tailMutex};
+        std::vector<T> ret;
+        while (header.get() != tail) {
+            ret.emplace_back(std::move(header->data));
+            header = std::move(header->next);
+        }
         return ret;
     }
 

@@ -27,8 +27,9 @@ private:
 
     bool openFile;
     QString fileName;
-    device* dev;
-    std::vector<std::vector<std::any> > *packets;
+    device_list devices;
+    std::unique_ptr<device> dev;
+    std::vector<std::vector<std::any>> packets;
     QStandardItemModel *model;
     QStandardItemModel *t_model;
     Count count;
@@ -37,7 +38,7 @@ private:
     //i为packets中packet的下标
     void addRow(int i);
     void showDetails(int i);
-    void showRow(int i);
+    void showRow(int i, analysis &ana);
     QString catch_filt;
     QString show_filt;
     bool catch_f;

@@ -2,7 +2,7 @@
 #include "protocol.h"
 
 //计数类
-struct Count{
+struct Count {
     std::vector<int> ipv4_c;
     std::vector<int> ipv6_c;
     std::vector<int> arp_c;
@@ -15,7 +15,7 @@ struct Count{
     std::vector<int> other_app_c;
 };
 
-struct Count_time{
+struct Count_time {
     QDateTime time;
     int ipv4;
     int ipv6;
@@ -30,8 +30,8 @@ struct Count_time{
 };
 
 //用于分析的类，直接用packet创建，然后用其成员变量
-class analysis{
-    public:
+class analysis {
+public:
     //通用的属性：
     // 时间
     QString time;
@@ -69,96 +69,86 @@ class analysis{
     //处理dns
     dns_packet dns;
 
-
-    analysis(std::vector<std::any> packet){
+    analysis(const std::vector<std::any>& packet) {
         simple_info info = std::any_cast<simple_info>(packet[0]);
         eth_header eth = std::any_cast<eth_header>(packet[1]);
 
-        char *rawbuf = (char *)malloc(info.raw_data.size()*5*sizeof(char));
+        std::vector<char> rawbuf(info.raw_data.size() * 5 * sizeof(char), '\0');
         int offset = 0;
-        for(int i = 0; i < info.raw_data.size(); i++){
-            offset += sprintf(rawbuf+offset, "%02x ", info.raw_data[i]);
+        for (int i = 0; i < info.raw_data.size(); i++) {
+            offset += sprintf(rawbuf.data() + offset, "%02x ", info.raw_data[i]);
         }
-        rawdata = QString(QLatin1String(rawbuf));
+        rawdata = QString::fromLocal8Bit(rawbuf.data(), offset);
 
         len = QString::number((int)eth.len);
-        char *buf = (char *)malloc(80 * sizeof(char));
-        sprintf(buf, "%02x-%02x-%02x-%02x-%02x-%02x", eth.src[0], eth.src[1], 
-        eth.src[2], eth.src[3], eth.src[4], eth.src[5]);
-        srcMac = QString(QLatin1String(buf));
-        buf = (char *)malloc(80 * sizeof(char));
-        sprintf(buf, "%02x-%02x-%02x-%02x-%02x-%02x", eth.dst[0], eth.dst[1], 
-        eth.dst[2], eth.dst[3], eth.dst[4], eth.dst[5]);
-        desMac = QString(QLatin1String(buf));
+        srcMac = QString::asprintf("%02x-%02x-%02x-%02x-%02x-%02x",
+                                   eth.src[0], eth.src[1], eth.src[2],
+                                   eth.src[3], eth.src[4], eth.src[5]);
+        desMac = QString::asprintf("%02x-%02x-%02x-%02x-%02x-%02x",
+                                   eth.dst[0], eth.dst[1], eth.dst[2],
+                                   eth.dst[3], eth.dst[4], eth.dst[5]);
 
         time = info.t.toString("hh:mm:ss");
 
-        if(packet[2].type() == typeid(ipv4_header)){
+        if (packet[2].type() == typeid(ipv4_header)) {
             type = "IPv4";
             header = "ipv4";
             ipv4 = std::any_cast<ipv4_header>(packet[2]);
-            char buf1[20] = { 0 };
+            char buf1[20] = {0};
             inet_ntop(AF_INET, ipv4.src, buf1, sizeof(buf1));
             srcIp = QString::fromStdString(buf1);
-            char buf2[20] = { 0 };
+            char buf2[20] = {0};
             inet_ntop(AF_INET, ipv4.dst, buf2, sizeof(buf2));
             desIp = QString::fromStdString(buf2);
             len = QString::number((int)ipv4.len);
-        }
-        else if(packet[2].type() == typeid(arp_packet)){
+        } else if (packet[2].type() == typeid(arp_packet)) {
             type = "ARP";
             header = "ARP";
             arp = std::any_cast<arp_packet>(packet[2]);
-            char buf1[20] = { 0 };
+            char buf1[20] = {0};
             inet_ntop(AF_INET, arp.src_ip, buf1, sizeof(buf1));
             srcIp = QString::fromStdString(buf1);
-            char buf2[20] = { 0 };
+            char buf2[20] = {0};
             inet_ntop(AF_INET, arp.dst_ip, buf2, sizeof(buf2));
             desIp = QString::fromStdString(buf2);
             len = QString::number((int)arp.ip_len);
-        }
-        else if(packet[2].type() == typeid(ipv6_header)){
+        } else if (packet[2].type() == typeid(ipv6_header)) {
             type = "IPv6";
             header = "ipv4";
             ipv6 = std::any_cast<ipv6_header>(packet[2]);
-            char buf1[20] = { 0 };
+            char buf1[50] = {0};
             inet_ntop(AF_INET6, ipv6.src, buf1, sizeof(buf1));
             srcIp = QString::fromStdString(buf1);
-            char buf2[20] = { 0 };
+            char buf2[50] = {0};
             inet_ntop(AF_INET6, ipv6.dst, buf2, sizeof(buf2));
             desIp = QString::fromStdString(buf2);
             len = QString::number((int)ipv6.payload_len);
-        }
-        else{
+        } else {
             type = "other";
             header = "other";
         }
 
-        if(packet.size()>=4){
-            if(packet[3].type() == typeid(icmp_packet)){
+        if (packet.size() >= 4) {
+            if (packet[3].type() == typeid(icmp_packet)) {
                 header = "icmp";
                 icmp = std::any_cast<icmp_packet>(packet[3]);
-            }
-            else if(packet[3].type() == typeid(tcp_header)){
+            } else if (packet[3].type() == typeid(tcp_header)) {
                 header = "tcp";
                 tcp = std::any_cast<tcp_header>(packet[3]);
-            }
-            else if(packet[3].type() == typeid(udp_header)){
+            } else if (packet[3].type() == typeid(udp_header)) {
                 header = "udp";
                 udp = std::any_cast<udp_header>(packet[3]);
-            }
-            else{
+            } else {
                 header = "other";
             }
         }
-        if(packet.size()>=5){
-            if(packet[4].type()==typeid(dns_packet)){
+        if (packet.size() >= 5) {
+            if (packet[4].type() == typeid(dns_packet)) {
                 app = "dns";
                 dns = std::any_cast<dns_packet>(packet[4]);
-            }
-            else{
+            } else {
                 app = "other";
             }
-        }          
+        }
     }
 };

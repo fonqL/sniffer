@@ -3,8 +3,6 @@
 #include <stdexcept>
 //
 
-static constexpr std::string_view DEFAULT_FILENAME = "./cap";
-
 device::device(const char* name, u_int netmask)
     : netmask(netmask) {
     char errbuf[PCAP_ERRBUF_SIZE];
@@ -18,8 +16,8 @@ device::device(const char* name, u_int netmask)
 
     if (pcap_datalink(src) != DLT_EN10MB)
         pcap_close(src), throw std::runtime_error{"only for Ethernet networks."};
-
-    file = pcap_dump_open(src, DEFAULT_FILENAME.data());
+    const auto& tmp = DEFAULT_FILENAME.toLocal8Bit();
+    file = pcap_dump_open(src, tmp.data());
     if (file == nullptr) pcap_close(src), throw std::runtime_error{"pcap_dump_open"};
 }
 
@@ -48,7 +46,7 @@ device::get_packet() {
         pcap_pkthdr* header;
         const u_char* data;
         int e = pcap_next_ex(src, &header, &data);
-        if (e < 0) throw std::runtime_error{"pcap_next_ex"};
+        if (e < 0) break;
         if (e == 0) continue;
         pcap_dump((u_char*)file, header, data);
         return {header, data};
@@ -69,14 +67,11 @@ device_list::device_list() {
     if (e == PCAP_ERROR) throw std::runtime_error{errbuf};
 }
 
-bool device::set_filter(std::string_view filter) {
+bool device::set_filter(std::string filter) {
     if (filter.size() >= PCAP_BUF_SIZE) throw std::overflow_error{"filter string too long"};
 
-    char buf[PCAP_BUF_SIZE] = {0};
-    filter.copy(buf, filter.size()); //copyto buf
-
     //todo 假设compile是无状态的。。错误后对src无影响。。待测试。。
-    int e = pcap_compile(src, &fcode, buf, 1, netmask);
+    int e = pcap_compile(src, &fcode, filter.data(), 1, netmask);
     if (e < 0)
         return false;
     e = pcap_setfilter(src, &fcode); //这里错误就没救了
@@ -86,6 +81,10 @@ bool device::set_filter(std::string_view filter) {
 
 std::vector<std::any> device::try_get() {
     return queue.tryPop();
+}
+
+std::vector<std::vector<std::any>> device::get_all() {
+    return queue.popAll();
 }
 
 void device::start_capture() {
@@ -124,10 +123,10 @@ std::vector<QString> device_list::to_strings() const {
     std::vector<QString> ret;
     for (auto* dev = header; dev != nullptr; dev = dev->next) {
         ret.push_back(
-            QString::asprintf("%s (%s)",
-                              dev->name,
+            QString::asprintf("%s: <%s>",
                               dev->description ? dev->description //
-                                               : "No description"));
+                                               : "Unknown",
+                              dev->name));
     }
     return ret;
 }
@@ -142,16 +141,15 @@ device_list::device_list(device_list&& x)
     x.header = nullptr;
 }
 
-inline device open_file(std::string_view file_name) {
+device open_file(const QString& file_name) {
     if (file_name.size() >= PCAP_BUF_SIZE) throw std::overflow_error("filename too long");
 
-    char source_name[PCAP_BUF_SIZE];
+    char ret_name[PCAP_BUF_SIZE];
     char errbuf[PCAP_ERRBUF_SIZE];
-    char raw_name[PCAP_BUF_SIZE] = {0};
-    file_name.copy(raw_name, file_name.size());
+    const QByteArray& arg_name = file_name.toLocal8Bit();
 
-    int e = pcap_createsrcstr(source_name, PCAP_SRC_FILE, nullptr, nullptr, raw_name, errbuf);
+    int e = pcap_createsrcstr(ret_name, PCAP_SRC_FILE, nullptr, nullptr, arg_name.data(), errbuf);
     if (e != 0) throw std::runtime_error{"pcap_createsrcstr"};
 
-    return {source_name, 0xffffff};
+    return {ret_name, 0xffffff};
 }
