@@ -6,11 +6,6 @@
 #include <QTimer>
 #include <QStandardItemModel>
 
-/*-------LHH-----------*/
-#include <regex>
-#include <sstream>
-#include <string>
-/*-------------------*/
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
