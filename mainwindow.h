@@ -34,6 +34,9 @@ private:
     Count count;
     std::vector<Count_time> count_t;
 
+    //限制显示行数
+    const int MAXSHOW = 20;
+
     //i为packets中packet的下标
     void addRow(int i);
     void showDetails(int i);

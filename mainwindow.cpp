@@ -2,6 +2,10 @@
 #include "./ui_mainwindow.h"
 
 void MainWindow::showRow(int i){
+    if(this->model->rowCount()>(this->MAXSHOW-1)){
+        this->model->removeRow(this->model->rowCount()-this->MAXSHOW);
+    }
+
     analysis *ana = new analysis(this->packets->at(i));
     this->model->appendRow(
         QList<QStandardItem *>()
@@ -305,6 +309,7 @@ MainWindow::MainWindow(QWidget* parent)
     this->show_filt = "";
     this->catch_f = false;
     this->show_f = false;
+    ui->spinBox->setRange(1, 1);
 
     //显示过滤
     connect(ui->pushButton_3, &QPushButton::clicked, this, [=](){
@@ -433,7 +438,7 @@ MainWindow::MainWindow(QWidget* parent)
 
             }
             timer->start(10);
-            timer_record->start(1000);
+            timer_record->start(900000);
             this->hadClear = false;
         }    
     });
@@ -446,8 +451,27 @@ MainWindow::MainWindow(QWidget* parent)
             timer_record->stop();
             this->dev->stop();
             delete this->dev;
+
+            int max = this->packets->size()/this->MAXSHOW;
+            max += this->packets->size()%this->MAXSHOW?1:0;
+
+            ui->spinBox->setRange(1, max);
         }
         
+    });
+
+    connect(ui->pushButton_10, &QPushButton::clicked, this, [=](){
+        if(this->stop){
+            if(!this->hadClear){
+                this->model->clear();
+                model->setHorizontalHeaderLabels(QStringList()<<"序号"<<"时间"<<"协议"<<"源ip"<<"目的ip"<<"长度");
+                for(int i = (ui->spinBox->value()-1)*this->MAXSHOW; i<ui->spinBox->value()*this->MAXSHOW; i++){
+                    if(i<this->packets->size()){
+                        this->showRow(i);
+                    }                   
+                }
+            }
+        }
     });
 
     //显示统计图
