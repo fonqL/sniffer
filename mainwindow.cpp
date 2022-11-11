@@ -1,6 +1,5 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
-#include "filter.h"
 
 void MainWindow::showRow(int i) {
     if (this->model->rowCount() > (this->MAXSHOW - 1)) {
@@ -444,7 +443,7 @@ MainWindow::MainWindow(QWidget* parent)
                 this->dev = std::make_unique<device>(open_file(this->fileName));
                 this->dev->start_capture();
             }
-            timer->start(10);
+            timer->start(100);
             timer_record->start(1000);
             this->hadClear = false;
         }
