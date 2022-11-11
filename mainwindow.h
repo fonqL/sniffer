@@ -6,6 +6,12 @@
 #include <QTimer>
 #include <QStandardItemModel>
 
+/*-------LHH-----------*/
+#include <regex>
+#include <sstream>
+#include <string>
+/*-------------------*/
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -34,9 +40,6 @@ private:
     Count count;
     std::vector<Count_time> count_t;
 
-    //限制显示行数
-    const int MAXSHOW = 20;
-
     //i为packets中packet的下标
     void addRow(int i);
     void showDetails(int i);
@@ -45,5 +48,17 @@ private:
     QString show_filt;
     bool catch_f;
     bool show_f;
+
+    /*---------------------显示过滤器的一些声明-------------------*/
+    bool is_a_sentence(QString fil);
+    bool is_a_filter(std::string filter);
+    std::vector<int> catched_filter(std::string s);
+    std::vector<int> analyse_filter(std::string filter);
+    std::vector<std::string> split_and(std::string filter);
+    std::vector<std::string> split_or(std::string filter);
+    std::vector<int> complex_or(std::vector<std::vector<int>>temp);
+    std::vector<int> complex_and(std::vector<std::vector<int>>temp);
+    std::vector<int> fixed_result(std::vector<int>temp);
+    /*------------------------------------------------------------*/
 };
 #endif // MAINWINDOW_H
