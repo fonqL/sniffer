@@ -45,6 +45,7 @@ private:
     void addRow(int i);
     void showDetails(int i);
     void showRow(int i);
+    void showRow(int i, const analysis& ana);
     QString catch_filt;
     QString show_filt;
     bool catch_f;

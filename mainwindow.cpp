@@ -2,11 +2,14 @@
 #include "./ui_mainwindow.h"
 
 void MainWindow::showRow(int i) {
+    analysis ana(this->packets.at(i));
+    showRow(i, ana);
+}
+
+void MainWindow::showRow(int i, const analysis& ana) {
     if (this->model->rowCount() > (this->MAXSHOW - 1)) {
         this->model->removeRow(this->model->rowCount() - this->MAXSHOW);
     }
-
-    analysis ana(this->packets.at(i));
     this->model->appendRow({
         new QStandardItem(QString::number(i + 1)),
         new QStandardItem(ana.time),
@@ -45,7 +48,7 @@ void MainWindow::addRow(int i) {
     } else if (ana.app == "other") {
         this->count.other_app_c.push_back(i);
     }
-    this->showRow(i);
+    this->showRow(i, ana);
 }
 
 void MainWindow::showDetails(int i) {
@@ -291,7 +294,7 @@ MainWindow::MainWindow(QWidget* parent)
     this->show_f = false;
     ui->spinBox->setRange(1, 1);
 
-    //清除过滤
+    //原 清除过滤按钮
     auto clearFilter = [this]() {
         this->catch_f = false;
         this->catch_filt = "";
@@ -299,10 +302,10 @@ MainWindow::MainWindow(QWidget* parent)
         this->show_filt = "";
         ui->lineEdit->clear();
 
-        for (int i = std::max(this->packets.size() - this->MAXSHOW, 0uLL); i < this->packets.size(); i++) {
-            showRow(i);
-        }
         if (this->packets.size() > 0) {
+            for (int i = std::max(this->packets.size() - this->MAXSHOW, 0uLL); i < this->packets.size(); i++) {
+                showRow(i);
+            }
             int max = this->packets.size() / this->MAXSHOW;
             max += this->packets.size() % this->MAXSHOW ? 1 : 0;
 
@@ -390,6 +393,7 @@ MainWindow::MainWindow(QWidget* parent)
             this->openFile = true;
             this->fileName = QFileDialog::getOpenFileName(this, "打开文件", QDir::homePath() + "/Desktop", "Mycap Files(*.mycap)");
             if (this->fileName.isNull()) return;
+            ui->comboBox->insertItem(0, this->fileName);
         }
     });
 
@@ -543,9 +547,9 @@ void MainWindow::timerUpdate() {
 
         if (true) {
             this->addRow(index - 1);
-            ui->tableView->scrollToBottom();
         }
     }
+    ui->tableView->scrollToBottom();
 
     this->textEdit->setText(QString::asprintf(
         "  ipv4: %d  ipv6: %d  arp: %d  other %d || icmp: %d  tcp: %d  udp %d  other %d || dns: %d  other: %d",
