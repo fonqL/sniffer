@@ -19,5 +19,6 @@ public:
 
 private:
     Ui::Dialog *ui;
+    std::unique_ptr<QChart> chart;
     std::vector<Count_time> count_t;
 };

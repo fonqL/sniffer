@@ -346,9 +346,9 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     //源、目的IP地址
     else if (std::regex_match(filter, std::regex("^ *ip *== *((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3} *$"))) {
         for (int i = 0; i < this->packets.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            std::string saved1 = std::regex_replace(aaa->srcIp.toStdString(), _empty, "");
-            std::string saved2 = std::regex_replace(aaa->desIp.toStdString(), _empty, "");
+            analysis aaa(this->packets.at(i));
+            std::string saved1 = std::regex_replace(aaa.srcIp.toStdString(), _empty, "");
+            std::string saved2 = std::regex_replace(aaa.desIp.toStdString(), _empty, "");
             if ((saved1 == set_data) || (saved2 == set_data))
                 results.push_back(i);
         }
@@ -357,8 +357,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     //目的ip地址
     else if (std::regex_match(filter, std::regex("^ *ip\\.dst *== *((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3} *$"))) {
         for (int i = 0; i < this->packets.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            std::string saved = std::regex_replace(aaa->desIp.toStdString(), _empty, "");
+            analysis aaa(this->packets.at(i));
+            std::string saved = std::regex_replace(aaa.desIp.toStdString(), _empty, "");
             if (saved == set_data)
                 results.push_back(i);
         }
@@ -367,8 +367,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     //源ip地址
     else if (std::regex_match(filter, std::regex("^ *ip\\.src *== *((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3} *$"))) {
         for (int i = 0; i < this->packets.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            std::string saved = std::regex_replace(aaa->srcIp.toStdString(), _empty, "");
+            analysis aaa(this->packets.at(i));
+            std::string saved = std::regex_replace(aaa.srcIp.toStdString(), _empty, "");
             if (saved == set_data)
                 results.push_back(i);
         }
@@ -378,8 +378,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     //TCP目的端口
     else if (std::regex_match(filter, std::regex("^ *tcp\\.dst *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            uint16_t saved = aaa->tcp.dst;
+            analysis aaa(this->packets.at(i));
+            uint16_t saved = aaa.tcp.dst;
             uint16_t trans; //把set_data 转成uint16_t
             std::stringstream stream(set_data);
             stream >> trans;
@@ -391,8 +391,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     //TCP源端口
     else if (std::regex_match(filter, std::regex("^ *tcp\\.src *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            uint16_t saved = aaa->tcp.src;
+            analysis aaa(this->packets.at(i));
+            uint16_t saved = aaa.tcp.src;
             uint16_t trans; //把set_data 转成uint16_t
             std::stringstream stream(set_data);
             stream >> trans;
@@ -404,9 +404,9 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     //TCP源、目的端口
     else if (std::regex_match(filter, std::regex("^ *tcp\\.port *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            uint16_t saved1 = aaa->tcp.dst;
-            uint16_t saved2 = aaa->tcp.src;
+            analysis aaa(this->packets.at(i));
+            uint16_t saved1 = aaa.tcp.dst;
+            uint16_t saved2 = aaa.tcp.src;
             uint16_t trans;
             //使用stringstream 把set_data 转成uint16_t
             std::stringstream stream(set_data);
@@ -420,8 +420,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     //UDP目的端口
     else if (std::regex_match(filter, std::regex("^ *udp\\.dst *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
         for (int i = 0; i < this->count.udp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            uint16_t saved = aaa->udp.dst;
+            analysis aaa(this->packets.at(i));
+            uint16_t saved = aaa.udp.dst;
             uint16_t trans; //把set_data 转成uint16_t
             std::stringstream stream(set_data);
             stream >> trans;
@@ -433,8 +433,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     //UDP源端口
     else if (std::regex_match(filter, std::regex("^ *udp\\.src *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
         for (int i = 0; i < this->count.udp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            uint16_t saved = aaa->udp.src;
+            analysis aaa(this->packets.at(i));
+            uint16_t saved = aaa.udp.src;
             uint16_t trans; //把set_data 转成uint16_t
             std::stringstream stream(set_data);
             stream >> trans;
@@ -446,9 +446,9 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     //UDP源、目的端口
     else if (std::regex_match(filter, std::regex("^ *udp\\.port *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
         for (int i = 0; i < this->count.udp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            uint16_t saved1 = aaa->udp.dst;
-            uint16_t saved2 = aaa->udp.src;
+            analysis aaa(this->packets.at(i));
+            uint16_t saved1 = aaa.udp.dst;
+            uint16_t saved2 = aaa.udp.src;
             uint16_t trans;
             //使用stringstream 把set_data 转成uint16_t
             std::stringstream stream(set_data);
@@ -462,9 +462,9 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     //所有端口
     else if (std::regex_match(filter, std::regex("^ *port *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
         for (int i = 0; i < this->count.udp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            uint16_t saved1 = aaa->udp.dst;
-            uint16_t saved2 = aaa->udp.src;
+            analysis aaa(this->packets.at(i));
+            uint16_t saved1 = aaa.udp.dst;
+            uint16_t saved2 = aaa.udp.src;
             uint16_t trans;
             //使用stringstream 把set_data 转成uint16_t
             std::stringstream stream(set_data);
@@ -473,9 +473,9 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
                 results.push_back(i);
         }
         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            uint16_t saved1 = aaa->tcp.dst;
-            uint16_t saved2 = aaa->tcp.src;
+            analysis aaa(this->packets.at(i));
+            uint16_t saved1 = aaa.tcp.dst;
+            uint16_t saved2 = aaa.tcp.src;
             uint16_t trans;
             //使用stringstream 把set_data 转成uint16_t
             std::stringstream stream(set_data);
@@ -490,8 +490,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     //长度==
     else if (std::regex_match(filter, std::regex("^ *len *== *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->packets.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved == trans)
                 results.push_back(i);
@@ -499,8 +499,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *arp\\.len *== *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->count.arp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved == trans)
                 results.push_back(i);
@@ -508,8 +508,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *ipv4\\.len *== *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->count.ipv4_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved == trans)
                 results.push_back(i);
@@ -517,8 +517,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *ipv6\\.len *== *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->count.ipv6_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved == trans)
                 results.push_back(i);
@@ -527,8 +527,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     } else if (std::regex_match(filter, std::regex("^ *tcp\\.len *== *[1-9][0-9]* *$"))) {
         int trans = std::stoi(set_data, 0, 10);
         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = int(aaa->tcp.header_len);
+            analysis aaa(this->packets.at(i));
+            int saved = int(aaa.tcp.header_len);
             if (saved == trans)
                 results.push_back(i);
         }
@@ -536,8 +536,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     } else if (std::regex_match(filter, std::regex("^ *udp\\.len *== *[1-9][0-9]* *$"))) {
         int trans = std::stoi(set_data, 0, 10);
         for (int i = 0; i < this->count.udp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = int(aaa->udp.len);
+            analysis aaa(this->packets.at(i));
+            int saved = int(aaa.udp.len);
             if (saved == trans)
                 results.push_back(i);
         }
@@ -546,8 +546,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     //长度>=
     else if (std::regex_match(filter, std::regex("^ *len *>= *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->packets.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved >= trans)
                 results.push_back(i);
@@ -555,8 +555,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *arp\\.len *>= *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->count.arp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved >= trans)
                 results.push_back(count.arp_c[i]);
@@ -564,8 +564,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *ipv4\\.len *>= *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->count.ipv4_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved >= trans)
                 results.push_back(count.ipv4_c[i]);
@@ -573,8 +573,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *ipv6\\.len *>= *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->count.ipv6_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved >= trans)
                 results.push_back(count.ipv6_c[i]);
@@ -583,8 +583,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     } else if (std::regex_match(filter, std::regex("^ *tcp\\.len *>= *[1-9][0-9]* *$"))) {
         int trans = std::stoi(set_data, 0, 10);
         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = int(aaa->tcp.header_len);
+            analysis aaa(this->packets.at(i));
+            int saved = int(aaa.tcp.header_len);
             if (saved >= trans)
                 results.push_back(count.tcp_c[i]);
         }
@@ -592,8 +592,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     } else if (std::regex_match(filter, std::regex("^ *udp\\.len *>= *[1-9][0-9]* *$"))) {
         int trans = std::stoi(set_data, 0, 10);
         for (int i = 0; i < this->count.udp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = int(aaa->udp.len);
+            analysis aaa(this->packets.at(i));
+            int saved = int(aaa.udp.len);
             if (saved >= trans)
                 results.push_back(count.udp_c[i]);
         }
@@ -602,8 +602,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     //长度<=
     else if (std::regex_match(filter, std::regex("^ *len *<= *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->packets.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved <= trans)
                 results.push_back(i);
@@ -611,8 +611,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *arp\\.len *<= *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->count.arp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved <= trans)
                 results.push_back(count.arp_c[i]);
@@ -620,8 +620,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *ipv4\\.len *<= *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->count.ipv4_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved <= trans)
                 results.push_back(count.ipv4_c[i]);
@@ -629,8 +629,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *ipv6\\.len *<= *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->count.ipv6_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved <= trans)
                 results.push_back(count.ipv6_c[i]);
@@ -639,8 +639,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     } else if (std::regex_match(filter, std::regex("^ *tcp\\.len *<= *[1-9][0-9]* *$"))) {
         int trans = std::stoi(set_data, 0, 10);
         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = int(aaa->tcp.header_len);
+            analysis aaa(this->packets.at(i));
+            int saved = int(aaa.tcp.header_len);
             if (saved <= trans)
                 results.push_back(count.tcp_c[i]);
         }
@@ -648,8 +648,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     } else if (std::regex_match(filter, std::regex("^ *udp\\.len *<= *[1-9][0-9]* *$"))) {
         int trans = std::stoi(set_data, 0, 10);
         for (int i = 0; i < this->count.udp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = int(aaa->udp.len);
+            analysis aaa(this->packets.at(i));
+            int saved = int(aaa.udp.len);
             if (saved <= trans)
                 results.push_back(count.udp_c[i]);
         }
@@ -658,8 +658,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     //长度<
     else if (std::regex_match(filter, std::regex("^ *len *< *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->packets.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved < trans)
                 results.push_back(i);
@@ -667,8 +667,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *arp\\.len *< *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->count.arp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved < trans)
                 results.push_back(count.arp_c[i]);
@@ -676,8 +676,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *ipv4\\.len *< *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->count.ipv4_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved < trans)
                 results.push_back(count.ipv4_c[i]);
@@ -685,8 +685,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *ipv6\\.len *< *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->count.ipv6_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved < trans)
                 results.push_back(count.ipv6_c[i]);
@@ -695,8 +695,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     } else if (std::regex_match(filter, std::regex("^ *tcp\\.len *< *[1-9][0-9]* *$"))) {
         int trans = std::stoi(set_data, 0, 10);
         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = int(aaa->tcp.header_len);
+            analysis aaa(this->packets.at(i));
+            int saved = int(aaa.tcp.header_len);
             if (saved < trans)
                 results.push_back(count.tcp_c[i]);
         }
@@ -704,8 +704,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     } else if (std::regex_match(filter, std::regex("^ *udp\\.len *< *[1-9][0-9]* *$"))) {
         int trans = std::stoi(set_data, 0, 10);
         for (int i = 0; i < this->count.udp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = int(aaa->udp.len);
+            analysis aaa(this->packets.at(i));
+            int saved = int(aaa.udp.len);
             if (saved < trans)
                 results.push_back(count.udp_c[i]);
         }
@@ -714,8 +714,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     //长度>
     else if (std::regex_match(filter, std::regex("^ *len *> *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->packets.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved > trans)
                 results.push_back(i);
@@ -723,8 +723,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *arp\\.len *> *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->count.arp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved > trans)
                 results.push_back(count.arp_c[i]);
@@ -732,8 +732,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *ipv4\\.len *> *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->count.ipv4_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved > trans)
                 results.push_back(count.ipv4_c[i]);
@@ -741,8 +741,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *ipv6\\.len *> *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->count.ipv6_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved > trans)
                 results.push_back(count.ipv6_c[i]);
@@ -751,8 +751,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     } else if (std::regex_match(filter, std::regex("^ *tcp\\.len *> *[1-9][0-9]* *$"))) {
         int trans = std::stoi(set_data, 0, 10);
         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = int(aaa->tcp.header_len);
+            analysis aaa(this->packets.at(i));
+            int saved = int(aaa.tcp.header_len);
             if (saved > trans)
                 results.push_back(count.tcp_c[i]);
         }
@@ -760,8 +760,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     } else if (std::regex_match(filter, std::regex("^ *udp\\.len *> *[1-9][0-9]* *$"))) {
         int trans = std::stoi(set_data, 0, 10);
         for (int i = 0; i < this->count.udp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = int(aaa->udp.len);
+            analysis aaa(this->packets.at(i));
+            int saved = int(aaa.udp.len);
             if (saved > trans)
                 results.push_back(count.udp_c[i]);
         }
@@ -771,33 +771,33 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     //各种不等关系!=
     else if (std::regex_match(filter, std::regex("^ *ip *!= *((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3} *$"))) {
         for (int i = 0; i < this->packets.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            std::string saved1 = std::regex_replace(aaa->srcIp.toStdString(), _empty, "");
-            std::string saved2 = std::regex_replace(aaa->desIp.toStdString(), _empty, "");
+            analysis aaa(this->packets.at(i));
+            std::string saved1 = std::regex_replace(aaa.srcIp.toStdString(), _empty, "");
+            std::string saved2 = std::regex_replace(aaa.desIp.toStdString(), _empty, "");
             if ((saved1 != set_data) && (saved2 != set_data))
                 results.push_back(i);
         }
         return results;
     } else if (std::regex_match(filter, std::regex("^ *ip\\.dst *!= *((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3} *$"))) {
         for (int i = 0; i < this->packets.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            std::string saved = std::regex_replace(aaa->desIp.toStdString(), _empty, "");
+            analysis aaa(this->packets.at(i));
+            std::string saved = std::regex_replace(aaa.desIp.toStdString(), _empty, "");
             if (saved != set_data)
                 results.push_back(i);
         }
         return results;
     } else if (std::regex_match(filter, std::regex("^ *ip\\.src *!= *((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3} *$"))) {
         for (int i = 0; i < this->packets.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            std::string saved = std::regex_replace(aaa->srcIp.toStdString(), _empty, "");
+            analysis aaa(this->packets.at(i));
+            std::string saved = std::regex_replace(aaa.srcIp.toStdString(), _empty, "");
             if (saved != set_data)
                 results.push_back(i);
         }
         return results;
     } else if (std::regex_match(filter, std::regex("^ *tcp\\.dst *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            uint16_t saved = aaa->tcp.dst;
+            analysis aaa(this->packets.at(i));
+            uint16_t saved = aaa.tcp.dst;
             uint16_t trans; //把set_data 转成uint16_t
             std::stringstream stream(set_data);
             stream >> trans;
@@ -807,8 +807,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *tcp\\.src *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            uint16_t saved = aaa->tcp.src;
+            analysis aaa(this->packets.at(i));
+            uint16_t saved = aaa.tcp.src;
             uint16_t trans; //把set_data 转成uint16_t
             std::stringstream stream(set_data);
             stream >> trans;
@@ -818,9 +818,9 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *tcp\\.port *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            uint16_t saved1 = aaa->tcp.dst;
-            uint16_t saved2 = aaa->tcp.src;
+            analysis aaa(this->packets.at(i));
+            uint16_t saved1 = aaa.tcp.dst;
+            uint16_t saved2 = aaa.tcp.src;
             uint16_t trans;
             //使用stringstream 把set_data 转成uint16_t
             std::stringstream stream(set_data);
@@ -831,8 +831,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *udp\\.dst *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
         for (int i = 0; i < this->count.udp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            uint16_t saved = aaa->udp.dst;
+            analysis aaa(this->packets.at(i));
+            uint16_t saved = aaa.udp.dst;
             uint16_t trans; //把set_data 转成uint16_t
             std::stringstream stream(set_data);
             stream >> trans;
@@ -842,8 +842,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *udp\\.src *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
         for (int i = 0; i < this->count.udp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            uint16_t saved = aaa->udp.src;
+            analysis aaa(this->packets.at(i));
+            uint16_t saved = aaa.udp.src;
             uint16_t trans; //把set_data 转成uint16_t
             std::stringstream stream(set_data);
             stream >> trans;
@@ -853,9 +853,9 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *udp\\.port *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
         for (int i = 0; i < this->count.udp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            uint16_t saved1 = aaa->udp.dst;
-            uint16_t saved2 = aaa->udp.src;
+            analysis aaa(this->packets.at(i));
+            uint16_t saved1 = aaa.udp.dst;
+            uint16_t saved2 = aaa.udp.src;
             uint16_t trans;
             //使用stringstream 把set_data 转成uint16_t
             std::stringstream stream(set_data);
@@ -866,9 +866,9 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *port *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
         for (int i = 0; i < this->count.udp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            uint16_t saved1 = aaa->udp.dst;
-            uint16_t saved2 = aaa->udp.src;
+            analysis aaa(this->packets.at(i));
+            uint16_t saved1 = aaa.udp.dst;
+            uint16_t saved2 = aaa.udp.src;
             uint16_t trans;
             //使用stringstream 把set_data 转成uint16_t
             std::stringstream stream(set_data);
@@ -877,9 +877,9 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
                 results.push_back(i);
         }
         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            uint16_t saved1 = aaa->tcp.dst;
-            uint16_t saved2 = aaa->tcp.src;
+            analysis aaa(this->packets.at(i));
+            uint16_t saved1 = aaa.tcp.dst;
+            uint16_t saved2 = aaa.tcp.src;
             uint16_t trans;
             //使用stringstream 把set_data 转成uint16_t
             std::stringstream stream(set_data);
@@ -890,8 +890,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *len *!= *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->packets.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved != trans)
                 results.push_back(i);
@@ -899,8 +899,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *arp\\.len *!= *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->count.arp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved != trans)
                 results.push_back(i);
@@ -908,8 +908,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *ipv4\\.len *!= *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->count.ipv4_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved != trans)
                 results.push_back(i);
@@ -917,8 +917,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
         return results;
     } else if (std::regex_match(filter, std::regex("^ *ipv6\\.len *!= *[1-9][0-9]* *$"))) {
         for (int i = 0; i < this->count.ipv6_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = aaa->len.toInt();
+            analysis aaa(this->packets.at(i));
+            int saved = aaa.len.toInt();
             int trans = std::stoi(set_data.c_str());
             if (saved != trans)
                 results.push_back(i);
@@ -927,8 +927,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     } else if (std::regex_match(filter, std::regex("^ *tcp\\.len *!= *[1-9][0-9]* *$"))) {
         int trans = std::stoi(set_data, 0, 10);
         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = int(aaa->tcp.header_len);
+            analysis aaa(this->packets.at(i));
+            int saved = int(aaa.tcp.header_len);
             if (saved != trans)
                 results.push_back(i);
         }
@@ -936,8 +936,8 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
     } else if (std::regex_match(filter, std::regex("^ *udp\\.len *!= *[1-9][0-9]* *$"))) {
         int trans = std::stoi(set_data, 0, 10);
         for (int i = 0; i < this->count.udp_c.size(); i++) {
-            analysis* aaa = new analysis(this->packets.at(i));
-            int saved = int(aaa->udp.len);
+            analysis aaa(this->packets.at(i));
+            int saved = int(aaa.udp.len);
             if (saved != trans)
                 results.push_back(i);
         }

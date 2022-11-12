@@ -21,6 +21,7 @@ public:
 
 private:
     Ui::MainWindow* ui;
+    QLabel* textEdit;
     uint device_choose;
     bool stop;
     bool hadClear;

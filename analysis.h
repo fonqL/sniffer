@@ -75,12 +75,16 @@ public:
         simple_info info = std::any_cast<simple_info>(packet[0]);
         eth_header eth = std::any_cast<eth_header>(packet[1]);
 
-        std::vector<char> rawbuf(info.raw_data.size() * 5 * sizeof(char), '\0');
+        std::vector<char> tmpbuf(info.raw_data.size() * 5 * sizeof(char), '\0');
         int offset = 0;
         for (int i = 0; i < info.raw_data.size(); i++) {
-            offset += sprintf(rawbuf.data() + offset, "%02x ", info.raw_data[i]);
+            offset += sprintf(tmpbuf.data() + offset, "%02x ", info.raw_data[i]);
+            if ((i + 1) % 16 == 0)
+                tmpbuf[offset++] = '\n';
+            else if ((i + 1) % 8 == 0)
+                offset += sprintf(tmpbuf.data() + offset, "   ");
         }
-        rawdata = QString::fromLocal8Bit(rawbuf.data(), offset);
+        rawdata = QString::fromLocal8Bit(tmpbuf.data(), offset);
 
         len = QString::number((int)eth.len);
         srcMac = QString::asprintf("%02x-%02x-%02x-%02x-%02x-%02x",

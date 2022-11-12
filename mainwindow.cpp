@@ -247,6 +247,8 @@ void MainWindow::showDetails(int i) {
 MainWindow::MainWindow(QWidget* parent)
     : QMainWindow(parent), ui(new Ui::MainWindow()) {
     ui->setupUi(this);
+    textEdit = new QLabel(this);
+    this->statusBar()->addWidget(textEdit);
     // 显示网卡
     for (auto& item: devices.to_strings()) {
         ui->comboBox->addItem(item);
@@ -278,7 +280,8 @@ MainWindow::MainWindow(QWidget* parent)
 
     //点击查看包详细内容
     connect(ui->tableView, &QTableView::clicked, this, [this](const QModelIndex& index) {
-        this->showDetails(index.row());
+        QString id = this->model->data(index).toString();
+        this->showDetails(id.toInt() - 1);
     });
 
     this->catch_filt = "";
@@ -287,69 +290,18 @@ MainWindow::MainWindow(QWidget* parent)
     this->show_f = false;
     ui->spinBox->setRange(1, 1);
 
-    //显示过滤
-    connect(ui->pushButton_3, &QPushButton::clicked, this, [=]() {
-        if (this->stop) {
-            if (!this->hadClear) {
-                this->model->clear();
-                this->model->setHorizontalHeaderLabels({
-                    "序号",
-                    "时间",
-                    "协议",
-                    "源ip",
-                    "目的ip",
-                    "长度",
-                });
-                ui->data->clear();
-                if (this->hadDetails) {
-                    this->t_model->clear();
-                }
-                this->hadDetails = false;
-                this->show_filt = ui->lineEdit->text();
-                this->show_f = true;
-
-                //-------------------这里开始 hh
-                if (is_a_sentence(this->show_filt)) { //判断语法
-                    show_result = catched_filter(this->show_filt.toStdString());
-                    if (show_result.size() != 0) {
-                        for (int i = 0; i < show_result.size(); i++)
-                            showRow(show_result[i]);
-                        int max = show_result.size() / this->MAXSHOW;
-                        max += show_result.size() % this->MAXSHOW ? 1 : 0;
-
-                        ui->spinBox->setRange(1, max);
-                        ui->spinBox->setValue(max);
-                        ui->label_2->setText(QString::asprintf("共%d页", max));
-                    } else {
-                        //过滤结果为空
-                    }
-                } else {
-                    //报错：语法错误
-                }
-            }
-        }
-    });
-
-    //抓包过滤
-    connect(ui->pushButton_4, &QPushButton::clicked, this, [=]() {
-        this->catch_f = true;
-        this->catch_filt = ui->lineEdit->text();
-    });
-
     //清除过滤
-    connect(ui->pushButton_7, &QPushButton::clicked, this, [=]() {
+    auto clearFilter = [this]() {
         this->catch_f = false;
         this->catch_filt = "";
         this->show_f = false;
         this->show_filt = "";
         ui->lineEdit->clear();
-        if (this->packets.size() > 0) {
-            for (int i = this->packets.size() - this->MAXSHOW; i < this->packets.size(); i++) {
-                if (i >= 0) {
-                    showRow(i);
-                }
-            }
 
+        for (int i = std::max(this->packets.size() - this->MAXSHOW, 0uLL); i < this->packets.size(); i++) {
+            showRow(i);
+        }
+        if (this->packets.size() > 0) {
             int max = this->packets.size() / this->MAXSHOW;
             max += this->packets.size() % this->MAXSHOW ? 1 : 0;
 
@@ -357,10 +309,68 @@ MainWindow::MainWindow(QWidget* parent)
             ui->spinBox->setValue(max);
             ui->label_2->setText(QString::asprintf("共%d页", max));
         }
+    };
+
+    connect(ui->radioButton, &QRadioButton::toggled, this, [this](bool checked) {
+        if (checked)
+            ui->radioButton->setText("显示过滤");
+        else
+            ui->radioButton->setText("捕获过滤");
+    });
+
+    //过滤
+    connect(ui->lineEdit, &QLineEdit::returnPressed, this, [this, clearFilter = std::move(clearFilter)]() {
+        if (ui->radioButton->isChecked()) {
+            if (!this->stop)
+                return;
+            if (this->hadClear)
+                return;
+            this->model->clear();
+            this->model->setHorizontalHeaderLabels({
+                "序号",
+                "时间",
+                "协议",
+                "源ip",
+                "目的ip",
+                "长度",
+            });
+            ui->data->clear();
+            if (this->hadDetails) {
+                this->t_model->clear();
+            }
+            this->hadDetails = false;
+            this->show_filt = ui->lineEdit->text();
+            this->show_f = true;
+
+            if (this->show_filt.trimmed().isEmpty())
+                clearFilter();
+
+            //-------------------这里开始 hh
+            if (is_a_sentence(this->show_filt)) { //判断语法
+                show_result = catched_filter(this->show_filt.toStdString());
+                if (show_result.size() != 0) {
+                    for (int i = 0; i < show_result.size(); i++)
+                        showRow(show_result[i]);
+                    int max = show_result.size() / this->MAXSHOW;
+                    max += show_result.size() % this->MAXSHOW ? 1 : 0;
+
+                    ui->spinBox->setRange(1, max);
+                    ui->spinBox->setValue(max);
+                    ui->label_2->setText(QString::asprintf("共%d页", max));
+                } else {
+                    //过滤结果为空
+                }
+            } else {
+                //报错：语法错误
+            }
+        } else {
+            this->catch_f = true;
+            this->catch_filt = ui->lineEdit->text();
+        }
     });
 
     //保存 fq
-    connect(ui->pushButton_8, &QPushButton::clicked, this, [=]() {
+    connect(ui->pushButton_8, &QPushButton::clicked, this, [this]() {
         if (this->stop) { //停止抓包后才能保存
             QString dest_path = QFileDialog::getSaveFileName(this, "保存文件");
             if (QFile::exists(dest_path)) {
@@ -373,7 +383,7 @@ MainWindow::MainWindow(QWidget* parent)
     });
 
     //打开  fq
-    connect(ui->pushButton_9, &QPushButton::clicked, this, [=]() {
+    connect(ui->pushButton_9, &QPushButton::clicked, this, [this]() {
         if (this->hadClear) { //清空抓包界面才能打开
             this->openFile = true;
 
@@ -399,8 +409,8 @@ MainWindow::MainWindow(QWidget* parent)
             }
         }
 
-        ui->textEdit->setText(QString::asprintf(
-            "ipv4: %d  ipv6: %d  arp: %d  other %d\nicmp: %d  tcp: %d  udp %d  other %d\ndns: %d  other: %d",
+        this->textEdit->setText(QString::asprintf(
+            "  ipv4: %d  ipv6: %d  arp: %d  other %d || icmp: %d  tcp: %d  udp %d  other %d || dns: %d  other: %d",
             this->count.ipv4_c.size(), this->count.ipv6_c.size(), this->count.arp_c.size(), this->count.other_c.size(),
             this->count.icmp_c.size(), this->count.tcp_c.size(), this->count.udp_c.size(), this->count.other_header_c.size(),
             this->count.dns_c.size(), this->count.other_app_c.size()));
@@ -427,8 +437,9 @@ MainWindow::MainWindow(QWidget* parent)
     });
 
     //开启线程
-    connect(ui->pushButton_2, &QPushButton::clicked, this, [=]() {
+    connect(ui->pushButton_2, &QPushButton::clicked, this, [this, timer, timer_record]() {
         if (this->stop) {
+            ui->radioButton->setChecked(true);
             if (!this->openFile) {
                 this->stop = false;
                 this->dev = std::make_unique<device>(devices.open(this->device_choose));
@@ -450,7 +461,7 @@ MainWindow::MainWindow(QWidget* parent)
     });
 
     //结束抓包
-    connect(ui->pushButton, &QPushButton::clicked, this, [=]() {
+    connect(ui->pushButton, &QPushButton::clicked, this, [this, timer, timer_record]() {
         if (!this->stop) {
             this->stop = true;
             timer->stop();
@@ -465,7 +476,7 @@ MainWindow::MainWindow(QWidget* parent)
     });
 
     //跳转
-    connect(ui->pushButton_10, &QPushButton::clicked, this, [=]() {
+    connect(ui->pushButton_10, &QPushButton::clicked, this, [this]() {
         if (this->stop) {
             if (!this->hadClear) {
                 this->model->clear();
@@ -492,7 +503,7 @@ MainWindow::MainWindow(QWidget* parent)
     });
 
     //显示统计图
-    connect(ui->pushButton_6, &QPushButton::clicked, this, [=]() {
+    connect(ui->pushButton_6, &QPushButton::clicked, this, [this]() {
         if (this->stop) {
             charts* ch = new charts(this);
             ch->setCount(this->count_t);
@@ -501,7 +512,7 @@ MainWindow::MainWindow(QWidget* parent)
     });
 
     //清空
-    connect(ui->pushButton_5, &QPushButton::clicked, this, [=]() {
+    connect(ui->pushButton_5, &QPushButton::clicked, this, [this]() {
         if (this->stop && !this->hadClear) {
             this->packets.clear();
             this->model->clear();
@@ -527,7 +538,7 @@ MainWindow::MainWindow(QWidget* parent)
 
             this->count_t.clear();
 
-            ui->textEdit->clear();
+            this->textEdit->clear();
             ui->data->clear();
             if (this->hadDetails) {
                 this->t_model->clear();

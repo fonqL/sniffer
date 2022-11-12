@@ -6,7 +6,7 @@ void charts::setCount(std::vector<Count_time> c){
 }
 
 charts::charts(QWidget* parent)
-    : QDialog(parent), ui(new Ui::Dialog) {
+    : QDialog(parent), ui(new Ui::Dialog), chart(std::make_unique<QChart>()) {
     ui->setupUi(this);
     ui->horizontalScrollBar->setVisible(false);
 
@@ -15,11 +15,10 @@ charts::charts(QWidget* parent)
 
         ui->horizontalScrollBar->disconnect();
         ui->horizontalScrollBar->setVisible(true);
-        if(this->count_t.size()<1){
+        if(this->count_t.size()<5){ //line 38: axisX->at(4)
             return;
         }
 
-        QChart *chart = new QChart();
 
         QBarCategoryAxis *axisX = new QBarCategoryAxis();
         QValueAxis *axisY = new QValueAxis();
@@ -61,8 +60,8 @@ charts::charts(QWidget* parent)
         chart->legend()->setVisible(true);
         chart->legend()->setAlignment(Qt::AlignBottom);
 
-        QChartView* cv = new QChartView(chart);
-        cv->setRenderHint(QPainter::Antialiasing);
+        QChartView* cv = new QChartView(chart.get());
+        cv->setRenderHint(QPainter::Antialiasing); 
 
         ui->horizontalScrollBar->setRange(0, this->count_t.size()>5?this->count_t.size()-5:0);
         ui->horizontalScrollBar->setPageStep(1);
@@ -91,8 +90,6 @@ charts::charts(QWidget* parent)
         if(this->count_t.size()<1){
             return;
         }
-
-        QChart *chart = new QChart();
 
         QPieSeries *series = new QPieSeries();
 
@@ -128,7 +125,7 @@ charts::charts(QWidget* parent)
         chart->legend()->setLabelColor(QColor(0, 100, 255)); //设置标签颜色
         chart->legend()->setMaximumHeight(150);
 
-        QChartView *cv = new QChartView(chart);
+        QChartView *cv = new QChartView(chart.get());
         cv->setRenderHint(QPainter::Antialiasing);
 
         // 删除布局中所有的控件
@@ -151,8 +148,6 @@ charts::charts(QWidget* parent)
         if(this->count_t.size()<1){
             return;
         }
-
-        QChart *chart = new QChart();
 
         QValueAxis  * axisY = new QValueAxis();
 
@@ -214,7 +209,7 @@ charts::charts(QWidget* parent)
 
         chart->setTitle("dns占比走势");
 
-        QChartView *cv = new QChartView(chart);
+        QChartView *cv = new QChartView(chart.get());
         cv->setRenderHint(QPainter::Antialiasing);
 
         while(ui->gridLayout->count())
