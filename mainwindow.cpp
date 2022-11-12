@@ -280,7 +280,8 @@ MainWindow::MainWindow(QWidget* parent)
 
     //点击查看包详细内容
     connect(ui->tableView, &QTableView::clicked, this, [this](const QModelIndex& index) {
-        QString id = this->model->data(index).toString();
+        QModelIndex index1 = this->model->index(index.row(), 0);
+        QString id = this->model->data(index1).toString();
         this->showDetails(id.toInt() - 1);
     });
 
@@ -372,7 +373,8 @@ MainWindow::MainWindow(QWidget* parent)
     //保存 fq
     connect(ui->pushButton_8, &QPushButton::clicked, this, [this]() {
         if (this->stop) { //停止抓包后才能保存
-            QString dest_path = QFileDialog::getSaveFileName(this, "保存文件");
+            QString dest_path = QFileDialog::getSaveFileName(this, "保存文件", QDir::homePath() + "/Desktop", "Mycap Files(*.mycap)");
+            if (dest_path.isNull()) return;
             if (QFile::exists(dest_path)) {
                 bool e = QFile::remove(dest_path);
                 if (!e) QMessageBox::critical(this, "保存文件", "失败: QFile::remove");
@@ -386,35 +388,13 @@ MainWindow::MainWindow(QWidget* parent)
     connect(ui->pushButton_9, &QPushButton::clicked, this, [this]() {
         if (this->hadClear) { //清空抓包界面才能打开
             this->openFile = true;
-
-            this->fileName = QFileDialog::getOpenFileName(this, "打开文件");
+            this->fileName = QFileDialog::getOpenFileName(this, "打开文件", QDir::homePath() + "/Desktop", "Mycap Files(*.mycap)");
+            if (this->fileName.isNull()) return;
         }
     });
 
     QTimer* timer = new QTimer(this);
-    connect(timer, &QTimer::timeout, [this]() {
-        auto tmp_packets = this->dev->get_all();
-        if (tmp_packets.empty())
-            return;
-        this->packets.reserve(this->packets.size() + tmp_packets.size());
-
-        for (auto& packet: tmp_packets) { //处理info...
-            this->packets.push_back(packet);
-
-            int index = this->packets.size();
-
-            if (true) {
-                this->addRow(index - 1);
-                ui->tableView->scrollToBottom();
-            }
-        }
-
-        this->textEdit->setText(QString::asprintf(
-            "  ipv4: %d  ipv6: %d  arp: %d  other %d || icmp: %d  tcp: %d  udp %d  other %d || dns: %d  other: %d",
-            this->count.ipv4_c.size(), this->count.ipv6_c.size(), this->count.arp_c.size(), this->count.other_c.size(),
-            this->count.icmp_c.size(), this->count.tcp_c.size(), this->count.udp_c.size(), this->count.other_header_c.size(),
-            this->count.dns_c.size(), this->count.other_app_c.size()));
-    });
+    connect(timer, &QTimer::timeout, this, &MainWindow::timerUpdate);
 
     // 用于记录时间下包数量
     QTimer* timer_record = new QTimer(this);
@@ -467,6 +447,7 @@ MainWindow::MainWindow(QWidget* parent)
             timer->stop();
             timer_record->stop();
             this->dev->stop();
+            timerUpdate();
             int max = this->packets.size() / this->MAXSHOW;
             max += this->packets.size() % this->MAXSHOW ? 1 : 0;
 
@@ -547,6 +528,30 @@ MainWindow::MainWindow(QWidget* parent)
             this->hadDetails = false;
         }
     });
+}
+
+void MainWindow::timerUpdate() {
+    auto tmp_packets = this->dev->get_all();
+    if (tmp_packets.empty())
+        return;
+    this->packets.reserve(this->packets.size() + tmp_packets.size());
+
+    for (auto& packet: tmp_packets) { //处理info...
+        this->packets.push_back(packet);
+
+        int index = this->packets.size();
+
+        if (true) {
+            this->addRow(index - 1);
+            ui->tableView->scrollToBottom();
+        }
+    }
+
+    this->textEdit->setText(QString::asprintf(
+        "  ipv4: %d  ipv6: %d  arp: %d  other %d || icmp: %d  tcp: %d  udp %d  other %d || dns: %d  other: %d",
+        this->count.ipv4_c.size(), this->count.ipv6_c.size(), this->count.arp_c.size(), this->count.other_c.size(),
+        this->count.icmp_c.size(), this->count.tcp_c.size(), this->count.udp_c.size(), this->count.other_header_c.size(),
+        this->count.dns_c.size(), this->count.other_app_c.size()));
 }
 
 MainWindow::~MainWindow() {

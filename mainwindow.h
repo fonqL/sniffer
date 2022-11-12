@@ -61,5 +61,7 @@ private:
     std::vector<int> complex_and(std::vector<std::vector<int>> temp);
     std::vector<int> fixed_result(std::vector<int> temp);
     /*------------------------------------------------------------*/
+
+    void timerUpdate();
 };
 #endif // MAINWINDOW_H
