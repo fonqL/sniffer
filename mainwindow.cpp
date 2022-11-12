@@ -322,7 +322,7 @@ MainWindow::MainWindow(QWidget* parent)
     });
 
     //过滤
-    connect(ui->lineEdit, &QLineEdit::returnPressed, this, [this, clearFilter = std::move(clearFilter)]() {
+    connect(ui->lineEdit, &QLineEdit::returnPressed, this, [this, clearFilter = std::move(clearFilter),&parent]() {
         if (ui->radioButton->isChecked()) {
             if (!this->stop)
                 return;
@@ -362,9 +362,11 @@ MainWindow::MainWindow(QWidget* parent)
                     ui->label_2->setText(QString::asprintf("共%d页", max));
                 } else {
                     //过滤结果为空
+                    QMessageBox::StandardButton resu = QMessageBox::warning(parent, "显示过滤", "找不到符合过滤条件的数据包。");
                 }
             } else {
                 //报错：语法错误
+                QMessageBox::StandardButton resu = QMessageBox::critical(parent, "显示过滤", "请输入正确的过滤表达式。");
             }
         } else {
             this->catch_f = true;
