@@ -15,9 +15,6 @@ charts::charts(QWidget* parent)
 
         ui->horizontalScrollBar->disconnect();
         ui->horizontalScrollBar->setVisible(true);
-        if(this->count_t.size()<5){ //line 38: axisX->at(4)
-            return;
-        }
 
 
         QBarCategoryAxis *axisX = new QBarCategoryAxis();
@@ -35,7 +32,7 @@ charts::charts(QWidget* parent)
             axisX->append(this->count_t[i].time.toString("hh:mm:ss"));
         }
 
-        axisX->setRange(axisX->at(0), axisX->at(4));
+        axisX->setRange(axisX->at(this->count_t.size()>5?this->count_t.size()-5:0), axisX->at(this->count_t.size()-1));
         axisY->setRange(0, max);
         axisY->setLabelFormat("%d");
 
