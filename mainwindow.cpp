@@ -2,7 +2,7 @@
 #include "./ui_mainwindow.h"
 
 void MainWindow::showRow(int i) {
-    analysis ana(this->packets.at(i));
+    analysis ana(this->packets[i]);
     showRow(i, ana);
 }
 
@@ -22,7 +22,7 @@ void MainWindow::showRow(int i, const analysis& ana) {
 }
 
 void MainWindow::addRow(int i) {
-    analysis ana(this->packets.at(i));
+    analysis ana(this->packets[i]);
     if (ana.type == "IPv4") {
         this->count.ipv4_c.push_back(i);
     } else if (ana.type == "IPv6") {
@@ -64,7 +64,7 @@ void MainWindow::showDetails(int i) {
 
     QStandardItem* eth_d = new QStandardItem("以太头");
     model->appendRow(eth_d);
-    analysis ana(this->packets.at(i));
+    analysis ana(this->packets[i]);
     eth_d->appendRow(new QStandardItem("类型: " + ana.type));
     eth_d->appendRow(new QStandardItem("源mac: " + ana.srcMac));
     eth_d->appendRow(new QStandardItem("目的mac: " + ana.desMac));
@@ -457,7 +457,7 @@ MainWindow::MainWindow(QWidget* parent)
             ui->spinBox->setRange(1, max);
             ui->label_2->setText(QString::asprintf("共%d页", max));
 
-            ui->radioButton->setCheckable(false);
+            ui->radioButton->setChecked(false);
         }
     });
 
@@ -539,10 +539,9 @@ void MainWindow::timerUpdate() {
     auto tmp_packets = this->dev->get_all();
     if (tmp_packets.empty())
         return;
-    this->packets.reserve(this->packets.size() + tmp_packets.size());
 
-    for (auto& packet: tmp_packets) { //处理info...
-        this->packets.push_back(packet);
+    for (auto& pkt: tmp_packets) { //处理info...
+        this->packets.push_back(pkt);
 
         int index = this->packets.size();
 
