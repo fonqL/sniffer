@@ -39,7 +39,7 @@ private:
 
     std::vector<int> show_result;
 
-    const int MAXSHOW = 20;
+    const int MAXSHOW = 100;
 
     //i为packets中packet的下标
     void addRow(int i);
