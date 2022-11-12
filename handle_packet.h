@@ -58,6 +58,7 @@ public:
 class device_list {
 private:
     pcap_if_t* header;
+    uint sz;
 
 public:
     device_list();
@@ -72,6 +73,8 @@ public:
 
 public:
     bool is_empty() const;
+
+    uint size() const;
 
     //先做一个这个东西，有需要再做个完善的遍历访问功能
     std::vector<QString> to_strings() const;

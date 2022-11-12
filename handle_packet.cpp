@@ -61,12 +61,6 @@ void device::stop() {
     thread.join();
 }
 
-device_list::device_list() {
-    char errbuf[PCAP_ERRBUF_SIZE];
-    int e = pcap_findalldevs(&header, errbuf);
-    if (e == PCAP_ERROR) throw std::runtime_error{errbuf};
-}
-
 bool device::set_filter(std::string filter) {
     if (filter.size() >= PCAP_BUF_SIZE) throw std::overflow_error{"filter string too long"};
 
@@ -104,8 +98,22 @@ void device::start_capture() {
     });
 }
 
+device_list::device_list()
+    : sz(0) {
+    char errbuf[PCAP_ERRBUF_SIZE];
+    int e = pcap_findalldevs(&header, errbuf);
+    if (e == PCAP_ERROR) throw std::runtime_error{errbuf};
+    for (auto* dev = header; dev != nullptr; dev = dev->next) {
+        ++sz;
+    }
+}
+
 bool device_list::is_empty() const {
     return header == nullptr;
+}
+
+uint device_list::size() const {
+    return sz;
 }
 
 device device_list::open(uint i) const {

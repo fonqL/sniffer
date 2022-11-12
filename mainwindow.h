@@ -27,7 +27,6 @@ private:
     bool hadClear;
     bool hadDetails;
 
-    bool openFile;
     QString fileName;
     device_list devices;
     std::unique_ptr<device> dev;

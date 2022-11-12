@@ -262,7 +262,6 @@ MainWindow::MainWindow(QWidget* parent)
     this->stop = true;
     this->hadClear = true;
     this->hadDetails = false;
-    this->openFile = false;
     this->model = new QStandardItemModel(this);
 
     model->setHorizontalHeaderLabels({
@@ -390,10 +389,10 @@ MainWindow::MainWindow(QWidget* parent)
     //打开  fq
     connect(ui->pushButton_9, &QPushButton::clicked, this, [this]() {
         if (this->hadClear) { //清空抓包界面才能打开
-            this->openFile = true;
             this->fileName = QFileDialog::getOpenFileName(this, "打开文件", QDir::homePath() + "/Desktop", "Mycap Files(*.mycap)");
             if (this->fileName.isNull()) return;
-            ui->comboBox->insertItem(0, this->fileName);
+            ui->comboBox->addItem(this->fileName);
+            ui->comboBox->setCurrentIndex(ui->comboBox->count() - 1);
         }
     });
 
@@ -424,7 +423,7 @@ MainWindow::MainWindow(QWidget* parent)
     connect(ui->pushButton_2, &QPushButton::clicked, this, [this, timer, timer_record]() {
         if (this->stop) {
             ui->radioButton->setChecked(true);
-            if (!this->openFile) {
+            if (this->device_choose < devices.size()) {
                 this->stop = false;
                 this->dev = std::make_unique<device>(devices.open(this->device_choose));
                 if (this->catch_f) {
@@ -457,6 +456,8 @@ MainWindow::MainWindow(QWidget* parent)
 
             ui->spinBox->setRange(1, max);
             ui->label_2->setText(QString::asprintf("共%d页", max));
+
+            ui->radioButton->setCheckable(false);
         }
     });
 
