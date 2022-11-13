@@ -322,7 +322,7 @@ MainWindow::MainWindow(QWidget* parent)
     });
 
     //过滤
-    connect(ui->lineEdit, &QLineEdit::returnPressed, this, [this, clearFilter = std::move(clearFilter),&parent]() {
+    connect(ui->lineEdit, &QLineEdit::returnPressed, this, [this, clearFilter = std::move(clearFilter), &parent]() {
         if (ui->radioButton->isChecked()) {
             if (!this->stop)
                 return;
@@ -543,7 +543,7 @@ void MainWindow::timerUpdate() {
         return;
 
     for (auto& pkt: tmp_packets) { //处理info...
-        this->packets.push_back(pkt);
+        this->packets.push_back(std::move(pkt));
 
         int index = this->packets.size();
 
