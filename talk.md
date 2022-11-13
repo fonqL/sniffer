@@ -10,3 +10,9 @@
 [VScode bug](https://github.com/aaron-bond/better-comments/issues/437#issuecomment-1274590408)
 版本为1.70以上至今1.72.2
 可能对插件工作有影响，修复也简单建议自己先修复一下。
+
+
+chart.get()->removeAllSeries();
+        for(int i = 0; i < chart.get()->axes().size(); i++){
+            chart.get()->removeAxis(chart.get()->axes().at(i));
+        }
