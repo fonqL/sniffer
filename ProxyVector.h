@@ -6,11 +6,11 @@
 
 // #include <>
 class ProxyVector {
-    bool isArchived;
     size_t offset;
     size_t sz;
     QSqlDatabase db;
     std::vector<std::vector<std::any>> packets;
+    std::vector<QByteArray> blobCache;
 
 private:
     void sql_assert(bool e) {

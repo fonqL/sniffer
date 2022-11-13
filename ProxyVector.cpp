@@ -2,7 +2,7 @@
 #include "protocol.h"
 #include <QDataStream>
 //
-static constexpr size_t LENGTH = 100;
+static constexpr size_t LENGTH = 5000;
 
 using vec8_t = std::vector<uint8_t>;
 
@@ -111,7 +111,7 @@ void match(QDataStream& ds, const std::any& x) {
     if (!e) throw std::runtime_error{"serialise error"};
 }
 
-QDataStream& operator<<(QDataStream& ds, std::vector<std::any>& x) {
+QDataStream& operator<<(QDataStream& ds, const std::vector<std::any>& x) {
     ds << x.size();
     bool zero = true;
     for (auto& item: x) {
@@ -180,7 +180,7 @@ QDataStream& operator>>(QDataStream& ds, std::vector<std::any>& x) {
 
 //
 ProxyVector::ProxyVector()
-    : isArchived(false), offset(0), sz(0), db(QSqlDatabase::addDatabase("QSQLITE")) {
+    : offset(0), sz(0), db(QSqlDatabase::addDatabase("QSQLITE")) {
     db.setDatabaseName("db");
     sql_assert(db.open());
     exec("PRAGMA synchronous = OFF");
@@ -196,11 +196,8 @@ void ProxyVector::archive() {
     exec("BEGIN");
     QSqlQuery query;
     e &= query.prepare("INSERT INTO packets VALUES(?)");
-    for (auto& pkt: packets) {
-        QByteArray buf;
-        QDataStream ds{&buf, QIODevice::WriteOnly};
-        ds << pkt;
-        query.addBindValue(buf);
+    for (auto& blob: blobCache) {
+        query.addBindValue(blob);
         e &= query.exec();
         query.finish();
     }
@@ -209,23 +206,26 @@ void ProxyVector::archive() {
 
     offset += packets.size();
     packets.clear();
-    isArchived = true;
+    blobCache.clear();
 }
 
-void ProxyVector::push_back(std::vector<std::any>&& x) {
-    if (uint64_t(packets.size()) >= LENGTH) {
+void ProxyVector::push_back(std::vector<std::any>&& pkt) {
+    if (uint64_t(packets.size()) >= LENGTH && !blobCache.empty()) {
         archive();
     }
-    isArchived = false;
     ++sz;
-    packets.push_back(std::move(x));
+    QByteArray buf;
+    QDataStream ds{&buf, QIODevice::WriteOnly};
+    ds << pkt;
+    blobCache.push_back(buf);
+    packets.push_back(std::move(pkt));
 }
 
 const std::vector<std::any>&
 ProxyVector::operator[](size_t i) {
     if (i < 0 || sz <= i) std::runtime_error("invalid index: too big");
     if (i < offset || std::min(offset + LENGTH, sz) <= i) {
-        if (!isArchived)
+        if (!blobCache.empty())
             archive();
         packets.clear();
         offset = i / LENGTH * LENGTH;

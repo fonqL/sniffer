@@ -459,8 +459,6 @@ MainWindow::MainWindow(QWidget* parent)
 
             ui->spinBox->setRange(1, max);
             ui->label_2->setText(QString::asprintf("共%d页", max));
-
-            ui->radioButton->setChecked(false);
         }
     });
 
