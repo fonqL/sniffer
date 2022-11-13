@@ -1,8 +1,15 @@
 #pragma once
 
+#include <QDateTime>
 #include <stdint.h>
 #include <string_view>
 #include <vector>
+//
+
+struct simple_info {
+    QDateTime t;
+    QVector<uint8_t> raw_data;
+};
 
 struct eth_header {
     enum proto_t : uint16_t { //指定实现枚举的数据类型，正常使用即可，可以忽略

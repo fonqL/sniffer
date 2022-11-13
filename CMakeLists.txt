@@ -13,8 +13,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Charts Sql)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Charts Sql)
 
 file(GLOB PROJECT_SOURCES
         "*.cpp"
@@ -49,10 +49,10 @@ target_include_directories(sniffer PRIVATE ./NpCap/Include)
 target_link_directories(sniffer PRIVATE ./NpCap/Lib/x64)
 target_link_libraries(sniffer PRIVATE Packet wpcap Ws2_32)
 
-target_link_libraries(sniffer PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
-find_package(Qt6 REQUIRED COMPONENTS Charts)
 target_link_libraries(sniffer PRIVATE
-    Qt::Charts
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Charts
+    Qt${QT_VERSION_MAJOR}::Sql
 )
 
 set_target_properties(sniffer PROPERTIES

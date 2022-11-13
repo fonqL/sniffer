@@ -11,11 +11,6 @@
 
 const QString DEFAULT_FILENAME = "./cap";
 
-struct simple_info {
-    QDateTime t;
-    std::vector<uint8_t> raw_data;
-};
-
 class device {
 private:
     pcap_t* src;

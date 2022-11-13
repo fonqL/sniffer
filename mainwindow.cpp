@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
+#include "charts.h"
 
 void MainWindow::showRow(int i) {
     analysis ana(this->packets[i]);
@@ -547,9 +548,7 @@ void MainWindow::timerUpdate() {
 
         int index = this->packets.size();
 
-        if (true) {
-            this->addRow(index - 1);
-        }
+        this->addRow(index - 1);
     }
     ui->tableView->scrollToBottom();
 

@@ -1,7 +1,9 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "charts.h"
+#include "ProxyVector.h"
+#include "analysis.h"
+#include "handle_packet.h"
 #include <QMainWindow>
 #include <QStandardItemModel>
 #include <QTimer>
@@ -21,7 +23,7 @@ public:
 
 private:
     Ui::MainWindow* ui;
-    QLabel* textEdit;
+    class QLabel* textEdit;
     uint device_choose;
     bool stop;
     bool hadClear;
@@ -30,7 +32,7 @@ private:
     QString fileName;
     device_list devices;
     std::unique_ptr<device> dev;
-    std::vector<std::vector<std::any>> packets;
+    ProxyVector packets;
     QStandardItemModel* model;
     QStandardItemModel* t_model;
     Count count;
