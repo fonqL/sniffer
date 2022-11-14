@@ -440,8 +440,8 @@ MainWindow::MainWindow(QWidget* parent)
             this->dev->start_capture();
             this->stop = false;
             ui->radioButton->setChecked(true);
-            timer->start(1'000);
-            timer_record->start(900'000);
+            timer->start(500);
+            timer_record->start(60'000);
             this->hadClear = false;
         } catch (std::exception& e) {
             QMessageBox::critical(this, "打开失败", QString(e.what()));
