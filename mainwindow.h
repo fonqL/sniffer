@@ -53,15 +53,15 @@ private:
     bool show_f;
 
     /*---------------------显示过滤器的一些声明-------------------*/
-    bool is_a_sentence(QString fil);
-    bool is_a_filter(std::string filter);
-    std::vector<int> catched_filter(std::string s);
-    std::vector<int> analyse_filter(std::string filter);
-    std::vector<std::string> split_and(std::string filter);
-    std::vector<std::string> split_or(std::string filter);
-    std::vector<int> complex_or(std::vector<std::vector<int>> temp);
-    std::vector<int> complex_and(std::vector<std::vector<int>> temp);
-    std::vector<int> fixed_result(std::vector<int> temp);
+    bool is_a_sentence(const QString& fil);
+    bool is_a_filter(const std::string& filter);
+    std::vector<int> catched_filter(const std::string& s);
+    std::vector<int> analyse_filter(const std::string& filter);
+    std::vector<std::string> split_and(const std::string& filter);
+    std::vector<std::string> split_or(const std::string& filter);
+    std::vector<int> complex_or(std::vector<std::vector<int>>& temp);
+    std::vector<int> complex_and(std::vector<std::vector<int>>& temp);
+    std::vector<int> fixed_result(const std::vector<int>& temp);
     /*------------------------------------------------------------*/
 
     void timerUpdate();

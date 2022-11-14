@@ -30,7 +30,7 @@ std::regex _not_eq("!=");
         len|ipv4.len|.....|tcp.len
 */
 //判断是不是一个合法的过滤语句
-bool MainWindow::is_a_sentence(QString fil) {
+bool MainWindow::is_a_sentence(const QString& fil) {
     std::string filter = fil.toStdString();
     if (std::regex_match(filter, std::regex(" *"))) //空语句
         return false;
@@ -58,7 +58,7 @@ bool MainWindow::is_a_sentence(QString fil) {
 }
 
 //判断子句有没有语法问题
-bool MainWindow::is_a_filter(std::string filter) {
+bool MainWindow::is_a_filter(const std::string& filter) {
     //端口范围：0-65535，超出会报错
     //ip范围：0.0.0.0--255.255.255.255
     if (std::regex_match(filter, std::regex(" *arp *", std::regex::icase)))
@@ -222,7 +222,7 @@ bool MainWindow::is_a_filter(std::string filter) {
 }
 
 //过滤抓到的包,结果返回的出口
-std::vector<int> MainWindow::catched_filter(std::string s) {
+std::vector<int> MainWindow::catched_filter(const std::string& s) {
     if (std::regex_search(s, _and)) //and语句
     {
         std::vector<std::vector<int>> temp;
@@ -247,7 +247,7 @@ std::vector<int> MainWindow::catched_filter(std::string s) {
 }
 
 //分析子句,返回一个索引容器
-std::vector<int> MainWindow::analyse_filter(std::string filter) {
+std::vector<int> MainWindow::analyse_filter(const std::string& filter) {
     //预处理，将运算符后面的值提取出来存入set_data
     std::vector<std::string> temp_data;
     std::string set_data;
@@ -950,7 +950,7 @@ std::vector<int> MainWindow::analyse_filter(std::string filter) {
 }
 
 //分割and语句
-std::vector<std::string> MainWindow::split_and(std::string filter) {
+std::vector<std::string> MainWindow::split_and(const std::string& filter) {
     std::vector<std::string> filt;
     std::sregex_token_iterator beg(filter.begin(), filter.end(), _and, -1);
     std::sregex_token_iterator end; //结束标志
@@ -961,7 +961,7 @@ std::vector<std::string> MainWindow::split_and(std::string filter) {
 }
 
 //分割or语句
-std::vector<std::string> MainWindow::split_or(std::string filter) {
+std::vector<std::string> MainWindow::split_or(const std::string& filter) {
     std::vector<std::string> fff;
     std::sregex_token_iterator beg(filter.begin(), filter.end(), _or, -1);
     std::sregex_token_iterator end; //结束标志
@@ -972,7 +972,7 @@ std::vector<std::string> MainWindow::split_or(std::string filter) {
 }
 
 //求并集
-std::vector<int> MainWindow::complex_or(std::vector<std::vector<int>> temp) {
+std::vector<int> MainWindow::complex_or(std::vector<std::vector<int>>& temp) {
     std::vector<int> results;
     std::vector<int> to_delete;
 
@@ -1011,7 +1011,7 @@ std::vector<int> MainWindow::complex_or(std::vector<std::vector<int>> temp) {
 }
 
 //求交集
-std::vector<int> MainWindow::complex_and(std::vector<std::vector<int>> temp) {
+std::vector<int> MainWindow::complex_and(std::vector<std::vector<int>>& temp) {
     std::vector<int> results;
     std::vector<int> to_delete;
     for (int i = 0; i < temp.size(); i++)
@@ -1063,7 +1063,7 @@ std::vector<int> MainWindow::complex_and(std::vector<std::vector<int>> temp) {
 }
 
 //求补集
-std::vector<int> MainWindow::fixed_result(std::vector<int> temp) {
+std::vector<int> MainWindow::fixed_result(const std::vector<int>& temp) {
     std::vector<int> results;
     bool exist = false;
     for (int i = 0; i < this->packets.size(); i++) {
