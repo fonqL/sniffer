@@ -43,7 +43,7 @@ struct arp_packet {
 struct ipv4_header_base {
     enum proto_t : uint8_t {
         ICMP = 1,
-        IPv4 = 4,
+        // IPv4 = 4,
         TCP = 6,
         UDP = 17,
         IPv6 = 41
@@ -74,7 +74,7 @@ struct ipv6_header {
     enum header_t : uint8_t {
         TCP = 6,
         UDP = 17,
-        IPv6 = 41,
+        // IPv6 = 41,
     };
 
     uint32_t version : 4;

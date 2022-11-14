@@ -2,7 +2,9 @@
 #include "protocol.h"
 #include <QDataStream>
 //
-static constexpr size_t LENGTH = 5000;
+using namespace std::chrono_literals;
+static constexpr size_t LENGTH = 8000;
+static constexpr std::chrono::seconds INTERVAL = 5s;
 
 using vec8_t = std::vector<uint8_t>;
 
@@ -191,6 +193,14 @@ ProxyVector::ProxyVector()
          ")");
 }
 
+bool ProxyVector::is_activate() const {
+    if (blobCache.size() < LENGTH)
+        return false;
+    if (std::chrono::steady_clock::now() < lastTime + INTERVAL)
+        return false;
+    return true;
+}
+
 void ProxyVector::archive() {
     bool e = true;
     exec("BEGIN");
@@ -207,10 +217,12 @@ void ProxyVector::archive() {
     offset += packets.size();
     packets.clear();
     blobCache.clear();
+    lastTime = std::chrono::steady_clock::now();
 }
 
 void ProxyVector::push_back(std::vector<std::any>&& pkt) {
-    if (uint64_t(packets.size()) >= LENGTH && !blobCache.empty()) {
+    // if (uint64_t(packets.size()) >= LENGTH && !blobCache.empty()) {
+    if (is_activate()) {
         archive();
     }
     ++sz;
@@ -223,8 +235,8 @@ void ProxyVector::push_back(std::vector<std::any>&& pkt) {
 
 const std::vector<std::any>&
 ProxyVector::operator[](size_t i) {
-    if (i < 0 || sz <= i) std::runtime_error("invalid index: too big");
-    if (i < offset || std::min(offset + LENGTH, sz) <= i) {
+    if (i < 0 || sz <= i) std::runtime_error("invalid vector subscript: out of bound");
+    if (i < offset || offset + packets.size() <= i) {
         if (!blobCache.empty())
             archive();
         packets.clear();

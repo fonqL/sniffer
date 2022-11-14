@@ -61,16 +61,14 @@ void device::stop() {
     thread.join();
 }
 
-bool device::set_filter(std::string filter) {
+void device::set_filter(const std::string& filter) {
     if (filter.size() >= PCAP_BUF_SIZE) throw std::overflow_error{"filter string too long"};
 
     //todo 假设compile是无状态的。。错误后对src无影响。。待测试。。
     int e = pcap_compile(src, &fcode, filter.data(), 1, netmask);
-    if (e < 0)
-        return false;
-    e = pcap_setfilter(src, &fcode); //这里错误就没救了
+    if (e < 0) throw std::runtime_error{"capture filter syntax error"};
+    e = pcap_setfilter(src, &fcode);
     if (e < 0) throw std::runtime_error{"pcap_setfilter"};
-    return true;
 }
 
 std::vector<std::any> device::try_get() {
@@ -157,7 +155,7 @@ device open_file(const QString& file_name) {
     const QByteArray& arg_name = file_name.toLocal8Bit();
 
     int e = pcap_createsrcstr(ret_name, PCAP_SRC_FILE, nullptr, nullptr, arg_name.data(), errbuf);
-    if (e != 0) throw std::runtime_error{"pcap_createsrcstr"};
+    if (e != 0) throw std::runtime_error{errbuf};
 
     return {ret_name, 0xffffff};
 }

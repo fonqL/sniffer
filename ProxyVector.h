@@ -2,17 +2,22 @@
 
 #include <QtSql>
 #include <any>
+#include <chrono>
 #include <vector>
 
-// #include <>
+//
+
 class ProxyVector {
     size_t offset;
     size_t sz;
     QSqlDatabase db;
     std::vector<std::vector<std::any>> packets;
     std::vector<QByteArray> blobCache;
+    std::chrono::steady_clock::time_point lastTime;
 
 private:
+    bool is_activate() const;
+
     void sql_assert(bool e) {
         if (!e) throw std::runtime_error{"sql error"};
     }

@@ -424,25 +424,25 @@ MainWindow::MainWindow(QWidget* parent)
 
     //开启线程
     connect(ui->pushButton_2, &QPushButton::clicked, this, [this, timer, timer_record]() {
-        if (this->stop) {
-            ui->radioButton->setChecked(true);
+        if (!this->stop)
+            return;
+        try {
             if (this->device_choose < devices.size()) {
-                this->stop = false;
                 this->dev = std::make_unique<device>(devices.open(this->device_choose));
-                if (this->catch_f) {
-                    bool error = this->dev->set_filter(this->catch_filt.toStdString());
-                    if (!error) QMessageBox::critical(this, "捕获过滤器", "set_filter错误。请检查过滤器语法");
-                }
-                this->dev->start_capture();
-            } else {
-                //fq
-                this->stop = false;
+            } else { //fq
                 this->dev = std::make_unique<device>(open_file(this->fileName));
-                this->dev->start_capture();
             }
-            timer->start(100);
-            timer_record->start(1000);
+            if (this->catch_f) {
+                this->dev->set_filter(this->catch_filt.toStdString());
+            }
+            this->dev->start_capture();
+            this->stop = false;
+            ui->radioButton->setChecked(true);
+            timer->start(1'000);
+            timer_record->start(900'000);
             this->hadClear = false;
+        } catch (std::exception& e) {
+            QMessageBox::critical(this, "打开失败", QString(e.what()));
         }
     });
 

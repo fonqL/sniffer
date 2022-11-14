@@ -115,8 +115,8 @@ inline void parse_network<ipv6_header>(const uint8_t* begin, const uint8_t* end,
             return parse_transport<tcp_header>(begin, end, headers);
         case ipv6_header::UDP:
             return parse_transport<udp_header>(begin, end, headers);
-        case ipv6_header::IPv6:
-            return parse_network<ipv6_header>(begin, end, headers);
+        // case ipv6_header::IPv6:
+        //     return parse_network<ipv6_header>(begin, end, headers);
         default:
             return parse_unknown(begin, end, headers);
     }
@@ -145,8 +145,8 @@ inline void parse_network<ipv4_header>(const uint8_t* begin, const uint8_t* end,
     switch (ip_proto) {
         case ipv4_header::ICMP:
             return parse_transport<icmp_packet>(begin, end, headers);
-        case ipv4_header::IPv4:
-            return parse_network<ipv4_header>(begin, end, headers);
+        // case ipv4_header::IPv4:
+        //     return parse_network<ipv4_header>(begin, end, headers);
         case ipv4_header::TCP:
             return parse_transport<tcp_header>(begin, end, headers);
         case ipv4_header::UDP:
@@ -174,7 +174,7 @@ inline void parse_datalink(const uint8_t* begin, const uint8_t* end, std::vector
     auto& eth = std::any_cast<eth_header&>(a);
     eth.len = ntohs(eth.len);
     if (eth.len <= 0x0600) {
-        headers.push_back(std::vector<uint8_t>{begin, end});
+        // headers.push_back(std::vector<uint8_t>{begin, end});
         return; //不支持携带LLC层的mac帧
     }
     begin += sizeof(eth);

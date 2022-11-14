@@ -38,9 +38,8 @@ private:
 public:
     void stop();
 
-    //返回语法检查结果。正确为true，错误为false。不许忽视结果
-    [[nodiscard]] bool
-    set_filter(std::string filter);
+    //失败则抛异常
+    void set_filter(const std::string& filter);
 
     //不会阻塞，可能失败，失败时vec.empty() == true
     std::vector<std::any> try_get();
