@@ -303,7 +303,7 @@ MainWindow::MainWindow(QWidget* parent)
         ui->lineEdit->clear();
 
         if (this->packets.size() > 0) {
-            for (int i = std::max(this->packets.size() - this->MAXSHOW, 0uLL); i < this->packets.size(); i++) {
+            for (int i = std::max((int)this->packets.size() - this->MAXSHOW, 0); i < this->packets.size(); i++) {
                 showRow(i);
             }
             int max = this->packets.size() / this->MAXSHOW;
@@ -323,7 +323,7 @@ MainWindow::MainWindow(QWidget* parent)
     });
 
     //过滤
-    connect(ui->lineEdit, &QLineEdit::returnPressed, this, [this, clearFilter = std::move(clearFilter), &parent]() {
+    connect(ui->lineEdit, &QLineEdit::returnPressed, this, [this, clearFilter = std::move(clearFilter)]() {
         if (ui->radioButton->isChecked()) {
             if (!this->stop)
                 return;
@@ -346,8 +346,10 @@ MainWindow::MainWindow(QWidget* parent)
             this->show_filt = ui->lineEdit->text();
             this->show_f = true;
 
-            if (this->show_filt.trimmed().isEmpty())
+            if (this->show_filt.trimmed().isEmpty()) {
                 clearFilter();
+                return;
+            }
 
             //-------------------这里开始 hh
             if (is_a_sentence(this->show_filt)) { //判断语法
@@ -363,11 +365,11 @@ MainWindow::MainWindow(QWidget* parent)
                     ui->label_2->setText(QString::asprintf("共%d页", max));
                 } else {
                     //过滤结果为空
-                    QMessageBox::StandardButton resu = QMessageBox::warning(parent, "显示过滤", "找不到符合过滤条件的数据包。");
+                    QMessageBox::warning(this, "显示过滤", "找不到符合过滤条件的数据包。");
                 }
             } else {
                 //报错：语法错误
-                QMessageBox::StandardButton resu = QMessageBox::critical(parent, "显示过滤", "请输入正确的过滤表达式。");
+                QMessageBox::critical(this, "显示过滤", "请输入正确的过滤表达式。");
             }
         } else {
             this->catch_f = true;
@@ -492,9 +494,9 @@ MainWindow::MainWindow(QWidget* parent)
     //显示统计图
     connect(ui->pushButton_6, &QPushButton::clicked, this, [this]() {
         if (this->stop) {
-            charts* ch = new charts(this);
-            ch->setCount(this->count_t);
-            ch->show();
+            charts ch;
+            ch.setCount(this->count_t);
+            ch.show();
         }
     });
 

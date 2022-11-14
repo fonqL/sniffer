@@ -19,14 +19,17 @@ charts::charts(QWidget* parent)
         ui->horizontalScrollBar->disconnect();
         ui->horizontalScrollBar->setVisible(true);
 
+        if (this->count_t.size() < 1) {
+            return;
+        }
         QBarCategoryAxis* axisX = new QBarCategoryAxis();
         QValueAxis* axisY = new QValueAxis();
 
         QBarSet* ipv4_set = new QBarSet("ipv4");
         QBarSet* ipv6_set = new QBarSet("ipv6");
-        int max = this->count_t[this->count_t.size() - 1].ipv4;
-        if (this->count_t[this->count_t.size() - 1].ipv6 > max) {
-            max = this->count_t[this->count_t.size() - 1].ipv6;
+        int max = this->count_t.back().ipv4;
+        if (this->count_t.back().ipv6 > max) {
+            max = this->count_t.back().ipv6;
         }
         for (int i = 0; i < this->count_t.size(); i++) {
             *ipv4_set << this->count_t[i].ipv4;
@@ -93,9 +96,9 @@ charts::charts(QWidget* parent)
 
         QPieSeries* series = new QPieSeries();
 
-        double arp = this->count_t[this->count_t.size() - 1].arp;
-        double tcp = this->count_t[this->count_t.size() - 1].tcp;
-        double udp = this->count_t[this->count_t.size() - 1].udp;
+        double arp = this->count_t.back().arp;
+        double tcp = this->count_t.back().tcp;
+        double udp = this->count_t.back().udp;
         double sum = arp + tcp + udp;
 
         series->append(QString::asprintf("arp: %.2lf%", arp / sum * 100), arp);
@@ -172,7 +175,7 @@ charts::charts(QWidget* parent)
             series1->append(i, (dns / (dns + oth)) * 100);
         }
 
-        double max = this->count_t[this->count_t.size() - 1].dns / (this->count_t[this->count_t.size() - 1].dns + this->count_t[this->count_t.size() - 1].other_a) * 100;
+        double max = this->count_t.back().dns / (this->count_t.back().dns + this->count_t.back().other_a) * 100;
         axisY->setRange(0.0, max);
         axisY->setLabelFormat("%.2lf%");
 

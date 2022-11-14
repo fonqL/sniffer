@@ -1,6 +1,5 @@
 #include "mainwindow.h"
 #include <regex>
-#include <sstream>
 #include <string>
 
 /*----------显示过滤器的一些声明&函数定义--------*/
@@ -380,9 +379,7 @@ std::vector<int> MainWindow::analyse_filter(const std::string& filter) {
         for (int i = 0; i < this->count.tcp_c.size(); i++) {
             analysis aaa(this->packets.at(i));
             uint16_t saved = aaa.tcp.dst;
-            uint16_t trans; //把set_data 转成uint16_t
-            std::stringstream stream(set_data);
-            stream >> trans;
+            uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
             if (trans == saved)
                 results.push_back(i);
         }
@@ -393,9 +390,7 @@ std::vector<int> MainWindow::analyse_filter(const std::string& filter) {
         for (int i = 0; i < this->count.tcp_c.size(); i++) {
             analysis aaa(this->packets.at(i));
             uint16_t saved = aaa.tcp.src;
-            uint16_t trans; //把set_data 转成uint16_t
-            std::stringstream stream(set_data);
-            stream >> trans;
+            uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
             if (trans == saved)
                 results.push_back(i);
         }
@@ -407,10 +402,7 @@ std::vector<int> MainWindow::analyse_filter(const std::string& filter) {
             analysis aaa(this->packets.at(i));
             uint16_t saved1 = aaa.tcp.dst;
             uint16_t saved2 = aaa.tcp.src;
-            uint16_t trans;
-            //使用stringstream 把set_data 转成uint16_t
-            std::stringstream stream(set_data);
-            stream >> trans;
+            uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
             if ((trans == saved1) || (trans == saved2))
                 results.push_back(i);
         }
@@ -422,9 +414,7 @@ std::vector<int> MainWindow::analyse_filter(const std::string& filter) {
         for (int i = 0; i < this->count.udp_c.size(); i++) {
             analysis aaa(this->packets.at(i));
             uint16_t saved = aaa.udp.dst;
-            uint16_t trans; //把set_data 转成uint16_t
-            std::stringstream stream(set_data);
-            stream >> trans;
+            uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
             if (trans == saved)
                 results.push_back(i);
         }
@@ -435,9 +425,7 @@ std::vector<int> MainWindow::analyse_filter(const std::string& filter) {
         for (int i = 0; i < this->count.udp_c.size(); i++) {
             analysis aaa(this->packets.at(i));
             uint16_t saved = aaa.udp.src;
-            uint16_t trans; //把set_data 转成uint16_t
-            std::stringstream stream(set_data);
-            stream >> trans;
+            uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
             if (trans == saved)
                 results.push_back(i);
         }
@@ -449,10 +437,7 @@ std::vector<int> MainWindow::analyse_filter(const std::string& filter) {
             analysis aaa(this->packets.at(i));
             uint16_t saved1 = aaa.udp.dst;
             uint16_t saved2 = aaa.udp.src;
-            uint16_t trans;
-            //使用stringstream 把set_data 转成uint16_t
-            std::stringstream stream(set_data);
-            stream >> trans;
+            uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
             if ((trans == saved1) || (trans == saved2))
                 results.push_back(i);
         }
@@ -465,10 +450,7 @@ std::vector<int> MainWindow::analyse_filter(const std::string& filter) {
             analysis aaa(this->packets.at(i));
             uint16_t saved1 = aaa.udp.dst;
             uint16_t saved2 = aaa.udp.src;
-            uint16_t trans;
-            //使用stringstream 把set_data 转成uint16_t
-            std::stringstream stream(set_data);
-            stream >> trans;
+            uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
             if ((trans == saved1) || (trans == saved2))
                 results.push_back(i);
         }
@@ -476,10 +458,7 @@ std::vector<int> MainWindow::analyse_filter(const std::string& filter) {
             analysis aaa(this->packets.at(i));
             uint16_t saved1 = aaa.tcp.dst;
             uint16_t saved2 = aaa.tcp.src;
-            uint16_t trans;
-            //使用stringstream 把set_data 转成uint16_t
-            std::stringstream stream(set_data);
-            stream >> trans;
+            uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
             if ((trans == saved1) || (trans == saved2))
                 results.push_back(i);
         }
@@ -798,9 +777,7 @@ std::vector<int> MainWindow::analyse_filter(const std::string& filter) {
         for (int i = 0; i < this->count.tcp_c.size(); i++) {
             analysis aaa(this->packets.at(i));
             uint16_t saved = aaa.tcp.dst;
-            uint16_t trans; //把set_data 转成uint16_t
-            std::stringstream stream(set_data);
-            stream >> trans;
+            uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
             if (trans != saved)
                 results.push_back(i);
         }
@@ -809,9 +786,7 @@ std::vector<int> MainWindow::analyse_filter(const std::string& filter) {
         for (int i = 0; i < this->count.tcp_c.size(); i++) {
             analysis aaa(this->packets.at(i));
             uint16_t saved = aaa.tcp.src;
-            uint16_t trans; //把set_data 转成uint16_t
-            std::stringstream stream(set_data);
-            stream >> trans;
+            uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
             if (trans != saved)
                 results.push_back(i);
         }
@@ -821,10 +796,7 @@ std::vector<int> MainWindow::analyse_filter(const std::string& filter) {
             analysis aaa(this->packets.at(i));
             uint16_t saved1 = aaa.tcp.dst;
             uint16_t saved2 = aaa.tcp.src;
-            uint16_t trans;
-            //使用stringstream 把set_data 转成uint16_t
-            std::stringstream stream(set_data);
-            stream >> trans;
+            uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
             if ((trans != saved1) && (trans != saved2))
                 results.push_back(i);
         }
@@ -833,9 +805,7 @@ std::vector<int> MainWindow::analyse_filter(const std::string& filter) {
         for (int i = 0; i < this->count.udp_c.size(); i++) {
             analysis aaa(this->packets.at(i));
             uint16_t saved = aaa.udp.dst;
-            uint16_t trans; //把set_data 转成uint16_t
-            std::stringstream stream(set_data);
-            stream >> trans;
+            uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
             if (trans != saved)
                 results.push_back(i);
         }
@@ -844,9 +814,7 @@ std::vector<int> MainWindow::analyse_filter(const std::string& filter) {
         for (int i = 0; i < this->count.udp_c.size(); i++) {
             analysis aaa(this->packets.at(i));
             uint16_t saved = aaa.udp.src;
-            uint16_t trans; //把set_data 转成uint16_t
-            std::stringstream stream(set_data);
-            stream >> trans;
+            uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
             if (trans != saved)
                 results.push_back(i);
         }
@@ -856,10 +824,7 @@ std::vector<int> MainWindow::analyse_filter(const std::string& filter) {
             analysis aaa(this->packets.at(i));
             uint16_t saved1 = aaa.udp.dst;
             uint16_t saved2 = aaa.udp.src;
-            uint16_t trans;
-            //使用stringstream 把set_data 转成uint16_t
-            std::stringstream stream(set_data);
-            stream >> trans;
+            uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
             if ((trans != saved1) && (trans != saved2))
                 results.push_back(i);
         }
@@ -869,10 +834,7 @@ std::vector<int> MainWindow::analyse_filter(const std::string& filter) {
             analysis aaa(this->packets.at(i));
             uint16_t saved1 = aaa.udp.dst;
             uint16_t saved2 = aaa.udp.src;
-            uint16_t trans;
-            //使用stringstream 把set_data 转成uint16_t
-            std::stringstream stream(set_data);
-            stream >> trans;
+            uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
             if ((trans != saved1) && (trans != saved2))
                 results.push_back(i);
         }
@@ -880,10 +842,7 @@ std::vector<int> MainWindow::analyse_filter(const std::string& filter) {
             analysis aaa(this->packets.at(i));
             uint16_t saved1 = aaa.tcp.dst;
             uint16_t saved2 = aaa.tcp.src;
-            uint16_t trans;
-            //使用stringstream 把set_data 转成uint16_t
-            std::stringstream stream(set_data);
-            stream >> trans;
+            uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
             if ((trans != saved1) && (trans != saved2))
                 results.push_back(i);
         }

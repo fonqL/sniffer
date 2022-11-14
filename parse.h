@@ -16,7 +16,7 @@ template<>
 inline void parse_application<dns_packet>(const uint8_t* begin, const uint8_t* end, std::vector<std::any>& headers) {
     std::any a = std::make_any<dns_packet>();
     auto& dns = std::any_cast<dns_packet&>(a);
-    *(dns_packet_base*)&dns = *(dns_packet_base*)begin;
+    (dns_packet_base&)dns = *(dns_packet_base*)begin;
     dns.id = ntohs(dns.id);
 
     uint16_t tmp = *(uint16_t*)&dns.flags;
@@ -39,7 +39,7 @@ template<>
 inline void parse_transport<tcp_header>(const uint8_t* begin, const uint8_t* end, std::vector<std::any>& headers) {
     std::any a = std::make_any<tcp_header>();
     auto& tcp = std::any_cast<tcp_header&>(a);
-    *(tcp_header_base*)&tcp = *(tcp_header_base*)begin;
+    (tcp_header_base&)tcp = *(tcp_header_base*)begin;
     tcp.src = ntohs(tcp.src);
     tcp.dst = ntohs(tcp.dst);
     tcp.seq = ntohl(tcp.seq);
@@ -84,7 +84,7 @@ template<>
 inline void parse_transport<icmp_packet>(const uint8_t* begin, const uint8_t* end, std::vector<std::any>& headers) {
     std::any a = std::make_any<icmp_packet>();
     auto& icmp = std::any_cast<icmp_packet&>(a);
-    *(icmp_packet_base*)&icmp = *(icmp_packet_base*)begin;
+    (icmp_packet_base&)icmp = *(icmp_packet_base*)begin;
     icmp.checksum = ntohs(icmp.checksum);
     icmp.field = ntohl(icmp.field);
     icmp.data.insert(icmp.data.end(), begin + sizeof(icmp_packet_base), end);
@@ -126,7 +126,7 @@ template<>
 inline void parse_network<ipv4_header>(const uint8_t* begin, const uint8_t* end, std::vector<std::any>& headers) {
     std::any a = std::make_any<ipv4_header>();
     auto& ip = std::any_cast<ipv4_header&>(a);
-    *(ipv4_header_base*)&ip = *(ipv4_header_base*)begin;
+    (ipv4_header_base&)ip = *(ipv4_header_base*)begin;
     ip.len = ntohs(ip.len);
     ip.id = ntohs(ip.id);
 
@@ -173,10 +173,6 @@ inline void parse_datalink(const uint8_t* begin, const uint8_t* end, std::vector
     std::any a = *(eth_header*)begin;
     auto& eth = std::any_cast<eth_header&>(a);
     eth.len = ntohs(eth.len);
-    if (eth.len <= 0x0600) {
-        // headers.push_back(std::vector<uint8_t>{begin, end});
-        return; //不支持携带LLC层的mac帧
-    }
     begin += sizeof(eth);
     auto eth_type = eth.type;
     headers.push_back(std::move(a));

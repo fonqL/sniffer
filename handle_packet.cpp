@@ -64,7 +64,6 @@ void device::stop() {
 void device::set_filter(const std::string& filter) {
     if (filter.size() >= PCAP_BUF_SIZE) throw std::overflow_error{"filter string too long"};
 
-    //todo 假设compile是无状态的。。错误后对src无影响。。待测试。。
     int e = pcap_compile(src, &fcode, filter.data(), 1, netmask);
     if (e < 0) throw std::runtime_error{"capture filter syntax error"};
     e = pcap_setfilter(src, &fcode);
