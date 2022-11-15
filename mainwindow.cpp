@@ -8,8 +8,8 @@ void MainWindow::showRow(int i) {
 }
 
 void MainWindow::showRow(int i, const analysis& ana) {
-    if (this->model->rowCount() > (this->MAXSHOW - 1)) {
-        this->model->removeRow(this->model->rowCount() - this->MAXSHOW);
+    if (this->model->rowCount() >= this->MAXSHOW) {
+        this->model->removeRow(0);
     }
     this->model->appendRow({
         new QStandardItem(QString::number(i + 1)),

@@ -61,7 +61,7 @@ private:
     std::vector<std::string> split_or(const std::string& filter);
     std::vector<int> complex_or(std::vector<std::vector<int>>& temp);
     std::vector<int> complex_and(std::vector<std::vector<int>>& temp);
-    std::vector<int> fixed_result(const std::vector<int>& temp);
+    std::vector<int> fixed_result(const ProxyIntVector& temp);
     /*------------------------------------------------------------*/
 
     void timerUpdate();

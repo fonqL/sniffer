@@ -1022,7 +1022,7 @@ std::vector<int> MainWindow::complex_and(std::vector<std::vector<int>>& temp) {
 }
 
 //求补集
-std::vector<int> MainWindow::fixed_result(const std::vector<int>& temp) {
+std::vector<int> MainWindow::fixed_result(const ProxyIntVector& temp) {
     std::vector<int> results;
     bool exist = false;
     for (int i = 0; i < this->packets.size(); i++) {

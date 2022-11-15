@@ -1,22 +1,22 @@
 #pragma once
 
-// #include "handle_packet.h"
+#include "ProxyIntVector.h"
 #include "pcap.h"
 #include "protocol.h"
 #include <any>
 
 //计数类
 struct Count {
-    std::vector<int> ipv4_c;
-    std::vector<int> ipv6_c;
-    std::vector<int> arp_c;
-    std::vector<int> other_c;
-    std::vector<int> icmp_c;
-    std::vector<int> tcp_c;
-    std::vector<int> udp_c;
-    std::vector<int> other_header_c;
-    std::vector<int> dns_c;
-    std::vector<int> other_app_c;
+    ProxyIntVector ipv4_c;
+    ProxyIntVector ipv6_c;
+    ProxyIntVector arp_c;
+    ProxyIntVector other_c;
+    ProxyIntVector icmp_c;
+    ProxyIntVector tcp_c;
+    ProxyIntVector udp_c;
+    ProxyIntVector other_header_c;
+    ProxyIntVector dns_c;
+    ProxyIntVector other_app_c;
 };
 
 struct Count_time {

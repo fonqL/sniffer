@@ -235,7 +235,7 @@ void ProxyVector::push_back(std::vector<std::any>&& pkt) {
 
 const std::vector<std::any>&
 ProxyVector::operator[](size_t i) {
-    if (i < 0 || sz <= i) std::runtime_error("invalid vector subscript: out of bound");
+    if (i < 0 || sz <= i) throw std::runtime_error("invalid vector subscript: out of bound");
     if (i < offset || offset + packets.size() <= i) {
         if (!blobCache.empty())
             archive();

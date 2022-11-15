@@ -142,7 +142,7 @@ device_list::~device_list() {
 }
 
 device_list::device_list(device_list&& x)
-    : header(x.header) {
+    : header(x.header), sz(x.sz) {
     x.header = nullptr;
 }
 
