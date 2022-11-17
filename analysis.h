@@ -74,10 +74,10 @@ public:
     dns_packet dns;
 
     analysis(const std::vector<std::any>& packet) {
-        simple_info info = std::any_cast<simple_info>(packet[0]);
-        eth_header eth = std::any_cast<eth_header>(packet[1]);
+        auto& info = std::any_cast<const simple_info&>(packet[0]);
+        auto& eth = std::any_cast<const eth_header&>(packet[1]);
 
-        std::vector<char> tmpbuf(info.raw_data.size() * 5 * sizeof(char), '\0');
+        std::vector<char> tmpbuf(info.raw_data.size() * 5, '\0');
         int offset = 0;
         for (int i = 0; i < info.raw_data.size(); i++) {
             offset += sprintf(tmpbuf.data() + offset, "%02x ", info.raw_data[i]);
@@ -88,7 +88,7 @@ public:
         }
         rawdata = QString::fromLocal8Bit(tmpbuf.data(), offset);
 
-        len = QString::number((int)eth.len);
+        len = QString::number(info.raw_data.length());
         srcMac = QString::asprintf("%02x-%02x-%02x-%02x-%02x-%02x",
                                    eth.src[0], eth.src[1], eth.src[2],
                                    eth.src[3], eth.src[4], eth.src[5]);
@@ -108,7 +108,6 @@ public:
             char buf2[20] = {0};
             inet_ntop(AF_INET, ipv4.dst, buf2, sizeof(buf2));
             desIp = QString::fromStdString(buf2);
-            len = QString::number((int)ipv4.len);
         } else if (packet[2].type() == typeid(arp_packet)) {
             type = "ARP";
             header = "ARP";
@@ -119,7 +118,6 @@ public:
             char buf2[20] = {0};
             inet_ntop(AF_INET, arp.dst_ip, buf2, sizeof(buf2));
             desIp = QString::fromStdString(buf2);
-            len = QString::number((int)arp.ip_len);
         } else if (packet[2].type() == typeid(ipv6_header)) {
             type = "IPv6";
             header = "ipv4";
@@ -130,7 +128,6 @@ public:
             char buf2[50] = {0};
             inet_ntop(AF_INET6, ipv6.dst, buf2, sizeof(buf2));
             desIp = QString::fromStdString(buf2);
-            len = QString::number((int)ipv6.payload_len);
         } else {
             type = "other";
             header = "other";

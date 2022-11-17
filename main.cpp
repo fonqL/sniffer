@@ -10,9 +10,5 @@ int main(int argc, char* argv[]) {
         return a.exec();
     } catch (std::exception& e) {
         QMessageBox::critical(nullptr, "Error", e.what());
-        QFile file("log.txt");
-        file.open(QIODevice::WriteOnly | QIODevice::Text);
-        file.write(e.what());
-        file.close();
     }
 }

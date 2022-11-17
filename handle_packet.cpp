@@ -71,7 +71,7 @@ void device::set_filter(const std::string& filter) {
 }
 
 std::vector<std::any> device::try_get() {
-    return queue.tryPop();
+    return queue.tryPop().value_or(std::vector<std::any>{});
 }
 
 std::vector<std::vector<std::any>> device::get_all() {
@@ -82,7 +82,8 @@ void device::start_capture() {
     thread = std::thread([this]() {
         while (!stop_flag.load(std::memory_order_relaxed)) {
             auto [header, data] = get_packet();
-            if (header == nullptr) break;
+            if (header == nullptr || data == nullptr) break;
+            if (header->caplen != header->len || header->caplen == 0) continue;
             std::vector<std::any> res;
             res.push_back(simple_info{
                 QDateTime::fromSecsSinceEpoch(header->ts.tv_sec)
@@ -90,7 +91,8 @@ void device::start_capture() {
                 { data,       data + header->len}
             });
             parse_datalink(data, data + header->len, res);
-            queue.push(std::move(res));
+            if (res.size() > 1)
+                queue.push(std::move(res));
         }
     });
 }

@@ -46,7 +46,7 @@ struct ipv4_header_base {
         // IPv4 = 4,
         TCP = 6,
         UDP = 17,
-        IPv6 = 41
+        // IPv6 = 41
     };
 
     uint8_t header_len : 4; //位域，此成员变量只占4位（虽然是uint8_t）

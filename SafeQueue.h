@@ -3,95 +3,93 @@
 #include <condition_variable>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <vector>
 
 template<typename T>
 class SafeQueue {
+    static_assert(std::is_nothrow_default_constructible_v<T>);
     static_assert(std::is_nothrow_move_assignable_v<T>);
     static_assert(std::is_nothrow_move_constructible_v<T>);
-    static_assert(std::is_nothrow_default_constructible_v<T>);
 
-    struct Node {
-        std::unique_ptr<Node> next; //stackoverflow kusa.但是设定pophead。。单链表不能poptail
-        T data;
-    };
+    static constexpr size_t CAPACITY = 1u << (sizeof(uint16_t) * 8);
 
-    std::unique_ptr<Node> header;
-    std::mutex headerMutex;
+    std::unique_ptr<std::optional<T>[]> circleBuffer;
 
-    //约定tail指向的节点data为空
-    Node* tail;
-    std::mutex tailMutex;
+    uint16_t header;
+    uint16_t tail;
+    size_t size;
+    std::mutex mtx;
 
-    std::condition_variable notEmpty;
+    std::condition_variable cv;
 
 public:
-    SafeQueue()
-        : header(std::make_unique<Node>()),
-          tail(header.get()) {
-    }
-
-    ~SafeQueue() {
-        while (header != nullptr) {
-            header = std::move(header->next);
-        }
-    };
+    SafeQueue() : circleBuffer(new std::optional<T>[CAPACITY]), header(0), tail(0), size(0){};
+    ~SafeQueue() = default;
 
     SafeQueue(const SafeQueue&) = delete;
     SafeQueue(SafeQueue&&) = delete;
     SafeQueue& operator=(const SafeQueue&) = delete;
     SafeQueue& operator=(SafeQueue&&) = delete;
 
-private:
-    Node* getTail() {
-        std::scoped_lock lock{tailMutex};
-        return tail;
-    }
-
 public:
     void push(T&& newdata) {
-        auto newtail = std::make_unique<Node>();
-        auto ptr = newtail.get();
         {
-            std::scoped_lock lock{tailMutex};
-            tail->data = std::move(newdata);
-            tail->next = std::move(newtail);
-            tail = ptr;
+            std::unique_lock lock{mtx};
+            cv.wait(lock, [&]() {
+                return size != CAPACITY;
+            });
+            circleBuffer[tail] = std::move(newdata);
+            tail++;
+            size++;
         }
-        notEmpty.notify_one();
+        cv.notify_one();
     }
 
     T waitPop() {
-        std::unique_lock lock{headerMutex};
-        notEmpty.wait(lock, [&, header = header.get()]() {
-            return header != getTail();
-        });
-        auto ret = std::move(header->data);
-        header = std::move(header->next);
+        T ret;
+        {
+            std::unique_lock lock{mtx};
+            cv.wait(lock, [&]() {
+                return size != 0;
+            });
+            ret = std::move(circleBuffer[header].value());
+            circleBuffer[header] = std::nullopt;
+            header++;
+            size--;
+        }
+        cv.notify_one();
         return ret;
     }
 
-    T tryPop() {
-        std::unique_lock lock{headerMutex};
-        if (header.get() == getTail())
-            return T{};
-        auto ret = std::move(header->data);
-        header = std::move(header->next);
+    std::optional<T> tryPop() {
+        std::optional<T> ret;
+        {
+            std::scoped_lock lock{mtx};
+            if (header == tail)
+                return std::nullopt;
+            ret = std::move(circleBuffer[header].value());
+            circleBuffer[header] = std::nullopt;
+            header++;
+            size--;
+        }
+        cv.notify_one();
         return ret;
     }
 
     std::vector<T> popAll() {
-        std::scoped_lock lcks{headerMutex, tailMutex};
         std::vector<T> ret;
-        while (header.get() != tail) {
-            ret.emplace_back(std::move(header->data));
-            header = std::move(header->next);
+        {
+            std::scoped_lock lock{mtx};
+            ret.reserve(size);
+            while (header != tail) {
+                ret.emplace_back(std::move(circleBuffer[header].value()));
+                circleBuffer[header] = std::nullopt;
+                header++;
+            }
+            size = 0;
         }
+        cv.notify_one();
         return ret;
-    }
-
-    bool isEmpty() {
-        std::scoped_lock lock{headerMutex};
-        return header.get() == getTail();
     }
 };

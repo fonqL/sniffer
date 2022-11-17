@@ -101,17 +101,17 @@ void MainWindow::showDetails(int i) {
 
         arp_d->appendRow(new QStandardItem("源ip: " + ana.srcIp));
 
-        char* buf = (char*)malloc(80 * sizeof(char));
-        sprintf(buf, "%02x-%02x-%02x-%02x-%02x-%02x", ana.arp.src_mac[0], ana.arp.src_mac[1],
-                ana.arp.src_mac[2], ana.arp.src_mac[3], ana.arp.src_mac[4], ana.arp.src_mac[5]);
-        arp_d->appendRow(new QStandardItem("源mac: " + QString(QLatin1String(buf))));
+        arp_d->appendRow(new QStandardItem(QString::asprintf(
+            "源mac: %02x-%02x-%02x-%02x-%02x-%02x",
+            ana.arp.src_mac[0], ana.arp.src_mac[1], ana.arp.src_mac[2],
+            ana.arp.src_mac[3], ana.arp.src_mac[4], ana.arp.src_mac[5])));
 
         arp_d->appendRow(new QStandardItem("目的ip: " + ana.desIp));
 
-        buf = (char*)malloc(80 * sizeof(char));
-        sprintf(buf, "%02x-%02x-%02x-%02x-%02x-%02x", ana.arp.dst_mac[0], ana.arp.dst_mac[1],
-                ana.arp.dst_mac[2], ana.arp.dst_mac[3], ana.arp.dst_mac[4], ana.arp.dst_mac[5]);
-        arp_d->appendRow(new QStandardItem("目的mac: " + QString(QLatin1String(buf))));
+        arp_d->appendRow(new QStandardItem(QString::asprintf(
+            "源mac: %02x-%02x-%02x-%02x-%02x-%02x",
+            ana.arp.dst_mac[0], ana.arp.dst_mac[1], ana.arp.dst_mac[2],
+            ana.arp.dst_mac[3], ana.arp.dst_mac[4], ana.arp.dst_mac[5])));
 
     } else if (ana.type == "IPv6") {
         QStandardItem* ip_d = new QStandardItem("IP包头");

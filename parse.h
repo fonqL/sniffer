@@ -6,6 +6,8 @@
 
 //
 inline void parse_unknown(const uint8_t* begin, const uint8_t* end, std::vector<std::any>& headers) {
+    if (begin >= end + 1)
+        return;
     headers.push_back(std::vector<uint8_t>{begin, end});
 }
 
@@ -14,6 +16,8 @@ void parse_application(const uint8_t* begin, const uint8_t* end, std::vector<std
 
 template<>
 inline void parse_application<dns_packet>(const uint8_t* begin, const uint8_t* end, std::vector<std::any>& headers) {
+    if (begin + sizeof(dns_packet_base) >= end + 1)
+        return;
     std::any a = std::make_any<dns_packet>();
     auto& dns = std::any_cast<dns_packet&>(a);
     (dns_packet_base&)dns = *(dns_packet_base*)begin;
@@ -37,6 +41,8 @@ void parse_transport(const uint8_t* begin, const uint8_t* end, std::vector<std::
 
 template<>
 inline void parse_transport<tcp_header>(const uint8_t* begin, const uint8_t* end, std::vector<std::any>& headers) {
+    if (begin + sizeof(tcp_header_base) >= end + 1)
+        return;
     std::any a = std::make_any<tcp_header>();
     auto& tcp = std::any_cast<tcp_header&>(a);
     (tcp_header_base&)tcp = *(tcp_header_base*)begin;
@@ -47,6 +53,9 @@ inline void parse_transport<tcp_header>(const uint8_t* begin, const uint8_t* end
     tcp.window_size = ntohs(tcp.window_size);
     tcp.checksum = ntohs(tcp.checksum);
     tcp.urgent_ptr = ntohs(tcp.urgent_ptr);
+
+    if (begin + tcp.header_len * 4 >= end + 1)
+        return;
     std::copy(begin + sizeof(tcp_header_base), begin + tcp.header_len * 4, tcp.op);
 
     begin += tcp.header_len * 4;
@@ -62,6 +71,8 @@ inline void parse_transport<tcp_header>(const uint8_t* begin, const uint8_t* end
 
 template<>
 inline void parse_transport<udp_header>(const uint8_t* begin, const uint8_t* end, std::vector<std::any>& headers) {
+    if (begin + sizeof(begin) >= end + 1)
+        return;
     std::any a = *(udp_header*)begin;
     auto& udp = std::any_cast<udp_header&>(a);
     udp.src = ntohs(udp.src);
@@ -82,6 +93,8 @@ inline void parse_transport<udp_header>(const uint8_t* begin, const uint8_t* end
 
 template<>
 inline void parse_transport<icmp_packet>(const uint8_t* begin, const uint8_t* end, std::vector<std::any>& headers) {
+    if (begin + sizeof(icmp_packet_base) >= end + 1)
+        return;
     std::any a = std::make_any<icmp_packet>();
     auto& icmp = std::any_cast<icmp_packet&>(a);
     (icmp_packet_base&)icmp = *(icmp_packet_base*)begin;
@@ -97,6 +110,8 @@ void parse_network(const uint8_t* begin, const uint8_t* end, std::vector<std::an
 
 template<>
 inline void parse_network<ipv6_header>(const uint8_t* begin, const uint8_t* end, std::vector<std::any>& headers) {
+    if (begin + sizeof(ipv6_header) >= end + 1)
+        return;
     std::any a = *(ipv6_header*)begin;
     auto& ip6 = std::any_cast<ipv6_header&>(a);
 
@@ -124,6 +139,8 @@ inline void parse_network<ipv6_header>(const uint8_t* begin, const uint8_t* end,
 
 template<>
 inline void parse_network<ipv4_header>(const uint8_t* begin, const uint8_t* end, std::vector<std::any>& headers) {
+    if (begin + sizeof(ipv4_header_base) >= end + 1)
+        return;
     std::any a = std::make_any<ipv4_header>();
     auto& ip = std::any_cast<ipv4_header&>(a);
     (ipv4_header_base&)ip = *(ipv4_header_base*)begin;
@@ -137,6 +154,8 @@ inline void parse_network<ipv4_header>(const uint8_t* begin, const uint8_t* end,
     ip.offset = tmp;
 
     ip.checksum = ntohs(ip.checksum);
+    if (begin + ip.header_len * 4 >= end + 1)
+        return;
     std::copy(begin + sizeof(ipv4_header_base), begin + ip.header_len * 4, ip.op);
 
     begin += ip.header_len * 4;
@@ -151,8 +170,8 @@ inline void parse_network<ipv4_header>(const uint8_t* begin, const uint8_t* end,
             return parse_transport<tcp_header>(begin, end, headers);
         case ipv4_header::UDP:
             return parse_transport<udp_header>(begin, end, headers);
-        case ipv4_header::IPv6:
-            return parse_network<ipv6_header>(begin, end, headers);
+        // case ipv4_header::IPv6:
+        //     return parse_network<ipv6_header>(begin, end, headers);
         default:
             return parse_unknown(begin, end, headers);
     }
@@ -160,6 +179,8 @@ inline void parse_network<ipv4_header>(const uint8_t* begin, const uint8_t* end,
 
 template<>
 inline void parse_network<arp_packet>(const uint8_t* begin, const uint8_t* end, std::vector<std::any>& headers) {
+    if (begin + sizeof(arp_packet) >= end + 1)
+        return;
     std::any a = *(arp_packet*)begin;
     auto& arp = std::any_cast<arp_packet&>(a);
     arp.hardware_type = ntohs(arp.hardware_type);
@@ -170,6 +191,8 @@ inline void parse_network<arp_packet>(const uint8_t* begin, const uint8_t* end, 
 }
 
 inline void parse_datalink(const uint8_t* begin, const uint8_t* end, std::vector<std::any>& headers) {
+    if (begin + sizeof(eth_header) >= end + 1)
+        return;
     std::any a = *(eth_header*)begin;
     auto& eth = std::any_cast<eth_header&>(a);
     eth.len = ntohs(eth.len);
