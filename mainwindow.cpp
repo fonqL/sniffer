@@ -428,6 +428,8 @@ MainWindow::MainWindow(QWidget* parent)
     connect(ui->pushButton_2, &QPushButton::clicked, this, [this, timer, timer_record]() {
         if (!this->stop)
             return;
+        // 因为pcap的保存文件api没有追加功能，所以必须先清空。
+        ui->pushButton_5->click();
         try {
             if (this->device_choose < devices.size()) {
                 this->dev = std::make_unique<device>(devices.open(this->device_choose));
