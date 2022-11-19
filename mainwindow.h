@@ -5,8 +5,6 @@
 #include "analysis.h"
 #include "handle_packet.h"
 #include <QMainWindow>
-#include <QStandardItemModel>
-#include <QTimer>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -33,8 +31,8 @@ private:
     device_list devices;
     std::unique_ptr<device> dev;
     ProxyVector packets;
-    QStandardItemModel* model;
-    QStandardItemModel* t_model;
+    class QStandardItemModel* model;
+    class QStandardItemModel* t_model;
     Count count;
     std::vector<Count_time> count_t;
 

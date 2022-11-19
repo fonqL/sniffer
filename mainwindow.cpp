@@ -1,6 +1,9 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 #include "charts.h"
+#include <QStandardItemModel>
+#include <QSystemTrayIcon>
+#include <QTimer>
 
 void MainWindow::showRow(int i) {
     analysis ana(this->packets[i]);
