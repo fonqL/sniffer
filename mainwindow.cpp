@@ -457,9 +457,9 @@ MainWindow::MainWindow(QWidget* parent)
     connect(ui->pushButton, &QPushButton::clicked, this, [this, timer, timer_record]() {
         if (!this->stop) {
             this->stop = true;
+            this->dev->stop();
             timer->stop();
             timer_record->stop();
-            this->dev->stop();
             timerUpdate();
             int max = this->packets.size() / this->MAXSHOW;
             max += this->packets.size() % this->MAXSHOW ? 1 : 0;

@@ -12,12 +12,14 @@ class SafeQueue {
     static_assert(std::is_nothrow_move_assignable_v<T>);
     static_assert(std::is_nothrow_move_constructible_v<T>);
 
-    static constexpr size_t CAPACITY = 1u << (sizeof(uint16_t) * 8);
+    using capacity_t = uint16_t;
+
+    static constexpr size_t CAPACITY = 1u << (sizeof(capacity_t) * 8);
 
     std::unique_ptr<std::optional<T>[]> circleBuffer;
 
-    uint16_t header;
-    uint16_t tail;
+    capacity_t header;
+    capacity_t tail;
     size_t size;
     std::mutex mtx;
 
@@ -82,12 +84,12 @@ public:
         {
             std::scoped_lock lock{mtx};
             ret.reserve(size);
-            while (header != tail) {
+            while (size > 0) {
                 ret.emplace_back(std::move(circleBuffer[header].value()));
                 circleBuffer[header] = std::nullopt;
                 header++;
+                size--;
             }
-            size = 0;
         }
         cv.notify_one();
         return ret;
