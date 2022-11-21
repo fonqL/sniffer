@@ -494,9 +494,9 @@ MainWindow::MainWindow(QWidget* parent)
     //显示统计图
     connect(ui->pushButton_6, &QPushButton::clicked, this, [this]() {
         if (this->stop) {
-            charts ch;
-            ch.setCount(this->count_t);
-            ch.show();
+            charts* ch = new charts(this);
+            ch->setCount(this->count_t);
+            ch->show();
         }
     });
 
