@@ -1,6 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include "CustomItemModel.h"
 #include "ProxyVector.h"
 #include "analysis.h"
 #include "handle_packet.h"
@@ -31,7 +32,7 @@ private:
     device_list devices;
     std::unique_ptr<device> dev;
     ProxyVector packets;
-    class QStandardItemModel* model;
+    CustomItemModel* model;
     class QStandardItemModel* t_model;
     Count count;
     std::vector<Count_time> count_t;

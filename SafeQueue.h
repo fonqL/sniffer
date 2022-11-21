@@ -56,7 +56,7 @@ public:
                 return size != 0;
             });
             ret = std::move(circleBuffer[header].value());
-            circleBuffer[header] = std::nullopt;
+            circleBuffer[header].reset();
             header++;
             size--;
         }
@@ -71,7 +71,7 @@ public:
             if (header == tail)
                 return std::nullopt;
             ret = std::move(circleBuffer[header].value());
-            circleBuffer[header] = std::nullopt;
+            circleBuffer[header].reset();
             header++;
             size--;
         }
@@ -86,7 +86,7 @@ public:
             ret.reserve(size);
             while (size > 0) {
                 ret.emplace_back(std::move(circleBuffer[header].value()));
-                circleBuffer[header] = std::nullopt;
+                circleBuffer[header].reset();
                 header++;
                 size--;
             }

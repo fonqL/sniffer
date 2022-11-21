@@ -12,16 +12,16 @@ void MainWindow::showRow(int i) {
 
 void MainWindow::showRow(int i, const analysis& ana) {
     if (this->model->rowCount() >= this->MAXSHOW) {
-        this->model->removeRow(0);
+        this->model->removeOneRow();
     }
     this->model->appendRow({
-        new QStandardItem(QString::number(i + 1)),
-        new QStandardItem(ana.time),
-        new QStandardItem(ana.header),
-        new QStandardItem(ana.srcIp),
-        new QStandardItem(ana.desIp),
-        new QStandardItem(ana.len),
-        // new QStandardItem()
+        QString::number(i + 1),
+        ana.time,
+        ana.header,
+        ana.srcIp,
+        ana.desIp,
+        ana.len,
+        //
     });
 }
 
@@ -266,16 +266,8 @@ MainWindow::MainWindow(QWidget* parent)
     this->stop = true;
     this->hadClear = true;
     this->hadDetails = false;
-    this->model = new QStandardItemModel(this);
+    this->model = new CustomItemModel(this, {"序号", "时间", "协议", "源ip", "目的ip", "长度"});
 
-    model->setHorizontalHeaderLabels({
-        "序号",
-        "时间",
-        "协议",
-        "源ip",
-        "目的ip",
-        "长度",
-    });
     ui->tableView->setModel(this->model);
     ui->tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
@@ -333,14 +325,15 @@ MainWindow::MainWindow(QWidget* parent)
             if (this->hadClear)
                 return;
             this->model->clear();
-            this->model->setHorizontalHeaderLabels({
-                "序号",
-                "时间",
-                "协议",
-                "源ip",
-                "目的ip",
-                "长度",
-            });
+            //自定义了
+            // this->model->setHorizontalHeaderLabels({
+            //     "序号",
+            //     "时间",
+            //     "协议",
+            //     "源ip",
+            //     "目的ip",
+            //     "长度",
+            // });
             ui->data->clear();
             if (this->hadDetails) {
                 this->t_model->clear();
@@ -432,7 +425,7 @@ MainWindow::MainWindow(QWidget* parent)
         if (!this->stop)
             return;
         // 因为pcap的保存文件api没有追加功能，所以必须先清空。
-        ui->pushButton_5->click();
+        // ui->pushButton_5->click();
         try {
             if (this->device_choose < devices.size()) {
                 this->dev = std::make_unique<device>(devices.open(this->device_choose));
@@ -474,14 +467,15 @@ MainWindow::MainWindow(QWidget* parent)
         if (this->stop) {
             if (!this->hadClear) {
                 this->model->clear();
-                model->setHorizontalHeaderLabels({
-                    "序号",
-                    "时间",
-                    "协议",
-                    "源ip",
-                    "目的ip",
-                    "长度",
-                });
+                //自定义了
+                // model->setHorizontalHeaderLabels({
+                //     "序号",
+                //     "时间",
+                //     "协议",
+                //     "源ip",
+                //     "目的ip",
+                //     "长度",
+                // });
                 for (int i = (ui->spinBox->value() - 1) * this->MAXSHOW; i < ui->spinBox->value() * this->MAXSHOW; i++) {
                     if (i < this->packets.size()) {
                         if (this->show_f) {
@@ -510,14 +504,15 @@ MainWindow::MainWindow(QWidget* parent)
         if (this->stop && !this->hadClear) {
             this->packets.clear();
             this->model->clear();
-            model->setHorizontalHeaderLabels({
-                "序号",
-                "时间",
-                "协议",
-                "源ip",
-                "目的ip",
-                "长度",
-            });
+            //自定义了
+            // model->setHorizontalHeaderLabels({
+            //     "序号",
+            //     "时间",
+            //     "协议",
+            //     "源ip",
+            //     "目的ip",
+            //     "长度",
+            // });
 
             this->count.ipv4_c.clear();
             this->count.ipv6_c.clear();
