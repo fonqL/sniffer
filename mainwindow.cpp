@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
+#include "CustomItemModel.h"
 #include "charts.h"
 #include <QStandardItemModel>
 #include <QSystemTrayIcon>
