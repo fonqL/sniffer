@@ -25,7 +25,7 @@ static constexpr uint8_t T_E = 99;
 
 #define REG(T) \
     template<> \
-    static constexpr uint8_t T_E<T> = TYPE_##T;
+    const uint8_t T_E<T> = TYPE_##T;
 
 REG(eth_header)
 REG(arp_packet)
