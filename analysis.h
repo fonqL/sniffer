@@ -40,21 +40,21 @@ public:
     // 时间
     QString time;
     // 类型
-    QString type;
+    QString type; //ipv4, ipv6, arp
     // 包长度,单位字节
     QString len;
     // 源mac
     QString srcMac;
     QString desMac;
+    //源地址
     QString srcIp = "";
     QString desIp = "";
     // 协议类型
-    QString header = "";
+    QString header = ""; //tcp, icmp, udp
     //应用层
-    QString app = "";
+    QString app = ""; //dns, other
     //源数据
     QString rawdata = "空";
-
     // 协议：
     // 处理ipv4
     ipv4_header ipv4;
@@ -62,14 +62,12 @@ public:
     ipv6_header ipv6;
     // 处理arp
     arp_packet arp;
-
     // 处理icmp
     icmp_packet icmp;
     // 处理tcp
     tcp_header tcp;
     // 处理udp
     udp_header udp;
-
     //处理dns
     dns_packet dns;
 

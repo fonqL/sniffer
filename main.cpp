@@ -11,4 +11,5 @@ int main(int argc, char* argv[]) {
     } catch (std::exception& e) {
         QMessageBox::critical(nullptr, "Error", e.what());
     }
+    return 0;
 }

@@ -12,6 +12,7 @@ void MainWindow::showRow(int i) {
 }
 
 void MainWindow::showRow(int i, const analysis& ana) {
+    //超过显示最大数目
     if (this->model->rowCount() >= this->MAXSHOW) {
         this->model->removeOneRow();
     }
