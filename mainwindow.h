@@ -26,7 +26,6 @@ private:
     bool stop;
     bool hadClear;
     bool hadDetails;
-    bool isRun;
 
     QString fileName;
     device_list devices;

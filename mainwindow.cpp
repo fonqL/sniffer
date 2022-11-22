@@ -267,7 +267,6 @@ MainWindow::MainWindow(QWidget* parent)
     this->stop = true;
     this->hadClear = true;
     this->hadDetails = false;
-    this->isRun = false;
     this->model = new CustomItemModel(this, {"序号", "时间", "协议", "源ip", "目的ip", "长度"});
 
     ui->tableView->setModel(this->model);
@@ -427,9 +426,8 @@ MainWindow::MainWindow(QWidget* parent)
         if (!this->stop)
             return;
         // 因为pcap的保存文件api没有追加功能，所以必须先清空。
-        this->isRun = true;
+        // 取消暂停功能
         ui->pushButton_5->click();
-        this->isRun = false;
         try {
             if (this->device_choose < devices.size()) {
                 this->dev = std::make_unique<device>(devices.open(this->device_choose));
@@ -518,20 +516,18 @@ MainWindow::MainWindow(QWidget* parent)
             //     "长度",
             // });
 
-            if(!this->isRun){
-                this->count.ipv4_c.clear();
-                this->count.ipv6_c.clear();
-                this->count.arp_c.clear();
-                this->count.other_c.clear();
-                this->count.icmp_c.clear();
-                this->count.tcp_c.clear();
-                this->count.udp_c.clear();
-                this->count.other_header_c.clear();
-                this->count.dns_c.clear();
-                this->count.other_app_c.clear();
+            this->count.ipv4_c.clear();
+            this->count.ipv6_c.clear();
+            this->count.arp_c.clear();
+            this->count.other_c.clear();
+            this->count.icmp_c.clear();
+            this->count.tcp_c.clear();
+            this->count.udp_c.clear();
+            this->count.other_header_c.clear();
+            this->count.dns_c.clear();
+            this->count.other_app_c.clear();
 
-                this->count_t.clear();
-            }
+            this->count_t.clear();
 
             this->textEdit->clear();
             ui->data->clear();
