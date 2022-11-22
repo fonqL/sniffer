@@ -2,6 +2,7 @@
 #include "parse.h"
 #include <stdexcept>
 //
+using namespace std::chrono_literals;
 
 device::device(const char* name, u_int netmask)
     : netmask(netmask) {
@@ -92,7 +93,9 @@ void device::start_capture() {
             });
             parse_datalink(data, data + header->len, res);
             if (res.size() > 1)
-                queue.push(std::move(res));
+                while (!stop_flag.load(std::memory_order_relaxed)
+                       && !queue.push(std::move(res), 1s))
+                    ;
         }
     });
 }

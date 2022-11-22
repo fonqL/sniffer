@@ -67,6 +67,7 @@ charts::charts(QWidget* parent)
 
         ui->horizontalScrollBar->setRange(0, this->count_t.size() > 5 ? this->count_t.size() - 5 : 0);
         ui->horizontalScrollBar->setPageStep(1);
+        ui->horizontalScrollBar->setValue(this->count_t.size() > 5 ? this->count_t.size() - 5 : 0);
 
         connect(ui->horizontalScrollBar, &QScrollBar::valueChanged, this, [=]() {
             axisX->setRange(axisX->at(ui->horizontalScrollBar->value()), axisX->at(ui->horizontalScrollBar->value() + 4));

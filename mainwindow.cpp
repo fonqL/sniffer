@@ -254,9 +254,9 @@ void MainWindow::showDetails(int i) {
 }
 
 MainWindow::MainWindow(QWidget* parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow()) {
+    : QMainWindow(parent), ui(new Ui::MainWindow()), textEdit(new QLabel(this)), time_record(QDateTime::fromSecsSinceEpoch(0)) {
     ui->setupUi(this);
-    textEdit = new QLabel(this);
+
     this->statusBar()->addWidget(textEdit);
     // 显示网卡
     for (auto& item: devices.to_strings()) {
@@ -402,28 +402,8 @@ MainWindow::MainWindow(QWidget* parent)
     QTimer* timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, &MainWindow::timerUpdate);
 
-    // 用于记录时间下包数量
-    QTimer* timer_record = new QTimer(this);
-    connect(timer_record, &QTimer::timeout, [this]() {
-        if (this->packets.size() > 0) {
-            Count_time c_t;
-            c_t.time = QDateTime::currentDateTime();
-            c_t.arp = this->count.arp_c.size();
-            c_t.ipv4 = this->count.ipv4_c.size();
-            c_t.ipv6 = this->count.ipv6_c.size();
-            c_t.other = this->count.other_c.size();
-            c_t.icmp = this->count.icmp_c.size();
-            c_t.tcp = this->count.tcp_c.size();
-            c_t.udp = this->count.udp_c.size();
-            c_t.other_h = this->count.other_header_c.size();
-            c_t.dns = this->count.dns_c.size();
-            c_t.other_a = this->count.other_app_c.size();
-            this->count_t.push_back(c_t);
-        }
-    });
-
     //开启线程
-    connect(ui->pushButton_2, &QPushButton::clicked, this, [this, timer, timer_record]() {
+    connect(ui->pushButton_2, &QPushButton::clicked, this, [this, timer]() {
         if (!this->stop)
             return;
         // 因为pcap的保存文件api没有追加功能，所以必须先清空。
@@ -442,7 +422,6 @@ MainWindow::MainWindow(QWidget* parent)
             this->stop = false;
             ui->radioButton->setChecked(true);
             timer->start(500);
-            timer_record->start(60'00);
             this->hadClear = false;
         } catch (std::exception& e) {
             QMessageBox::critical(this, "打开失败", QString(e.what()));
@@ -450,13 +429,14 @@ MainWindow::MainWindow(QWidget* parent)
     });
 
     //结束抓包
-    connect(ui->pushButton, &QPushButton::clicked, this, [this, timer, timer_record]() {
+    connect(ui->pushButton, &QPushButton::clicked, this, [this, timer]() {
         if (!this->stop) {
             this->stop = true;
             this->dev->stop();
             timer->stop();
-            timer_record->stop();
             timerUpdate();
+            countUpdate(std::any_cast<const simple_info&>(packets[packets.size() - 1][0]).t);
+
             int max = this->packets.size() / this->MAXSHOW;
             max += this->packets.size() % this->MAXSHOW ? 1 : 0;
 
@@ -505,6 +485,7 @@ MainWindow::MainWindow(QWidget* parent)
     //清空
     connect(ui->pushButton_5, &QPushButton::clicked, this, [this]() {
         if (this->stop && !this->hadClear) {
+            this->time_record = QDateTime::fromSecsSinceEpoch(0);
             this->packets.clear();
             this->model->clear();
             //自定义了
@@ -541,12 +522,35 @@ MainWindow::MainWindow(QWidget* parent)
     });
 }
 
+// 用于记录时间下包数量
+void MainWindow::countUpdate(QDateTime t) {
+    Count_time c_t;
+    c_t.time = t;
+    c_t.arp = this->count.arp_c.size();
+    c_t.ipv4 = this->count.ipv4_c.size();
+    c_t.ipv6 = this->count.ipv6_c.size();
+    c_t.other = this->count.other_c.size();
+    c_t.icmp = this->count.icmp_c.size();
+    c_t.tcp = this->count.tcp_c.size();
+    c_t.udp = this->count.udp_c.size();
+    c_t.other_h = this->count.other_header_c.size();
+    c_t.dns = this->count.dns_c.size();
+    c_t.other_a = this->count.other_app_c.size();
+    this->count_t.push_back(c_t);
+}
+
 void MainWindow::timerUpdate() {
     auto tmp_packets = this->dev->get_all();
     if (tmp_packets.empty())
         return;
 
     for (auto& pkt: tmp_packets) { //处理info...
+        auto& t = std::any_cast<simple_info&>(pkt[0]).t;
+        if (t > time_record.addSecs(300)) {
+            countUpdate(t);
+            time_record = t;
+        }
+
         this->packets.push_back(std::move(pkt));
 
         int index = this->packets.size();

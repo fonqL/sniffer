@@ -26,6 +26,7 @@ private:
     bool stop;
     bool hadClear;
     bool hadDetails;
+    QDateTime time_record;
 
     QString fileName;
     device_list devices;
@@ -63,5 +64,6 @@ private:
     /*------------------------------------------------------------*/
 
     void timerUpdate();
+    void countUpdate(QDateTime t);
 };
 #endif // MAINWINDOW_H

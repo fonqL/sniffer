@@ -35,17 +35,17 @@ public:
     SafeQueue& operator=(SafeQueue&&) = delete;
 
 public:
-    void push(T&& newdata) {
+    bool push(T&& newdata, std::chrono::seconds sec) {
         {
             std::unique_lock lock{mtx};
-            cv.wait(lock, [&]() {
-                return size != CAPACITY;
-            });
+            cv.wait_for(lock, sec, [&]() { return size != CAPACITY; });
+            if (size == CAPACITY) return false;
             circleBuffer[tail] = std::move(newdata);
             tail++;
             size++;
         }
         cv.notify_one();
+        return true;
     }
 
     T waitPop() {
