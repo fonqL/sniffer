@@ -21,11 +21,11 @@ enum type_enum : uint8_t {
 };
 
 template<typename T>
-static constexpr uint8_t T_E = 99;
+constexpr uint8_t T_E = 99;
 
 #define REG(T) \
     template<> \
-    const uint8_t T_E<T> = TYPE_##T;
+    constexpr uint8_t T_E<T> = TYPE_##T;
 
 REG(eth_header)
 REG(arp_packet)
