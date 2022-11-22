@@ -120,6 +120,8 @@ public:
     }
 
     void clear() {
+        if (m_dataVector.size() == 0)
+            return;
         beginRemoveRows({}, 0, m_dataVector.size() - 1);
         m_dataVector.clear();
         endRemoveRows();
