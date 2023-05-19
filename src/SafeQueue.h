@@ -20,7 +20,9 @@ class SafeQueue {
 
     capacity_t header;
     capacity_t tail;
+    // 环形队列要额外维护size，tail有可能小于header
     size_t size;
+    // 大锁
     std::mutex mtx;
 
     std::condition_variable cv;

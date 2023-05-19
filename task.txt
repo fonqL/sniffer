@@ -71,7 +71,7 @@ SafeQueue不支持遍历。消费者一方必须从队列里拿出来放进自�
 2.
 原先代表数据包的协议头结构的vector<any>含义发生变化：
 现在是：
-vector<any>中的第一项（vec[0]）的类型为simple_info，在handle_packet.h里定义。
+vector<any>中的第一项（vec[0]）的类型为simple_info，在device.h里定义。
 含有捕获的时刻和原始bit流信息。
 （因为才发现wireshark里显示的十六进制bit是未处理过的。。
 

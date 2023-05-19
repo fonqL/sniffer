@@ -1,9 +1,9 @@
 #pragma once
 
 #include "SafeQueue.h"
+#include "packet.h"
 #include <QDateTime>
 #include <QString>
-#include <any>
 #include <pcap.h>
 #include <thread>
 //
@@ -19,7 +19,7 @@ private:
     bpf_program fcode;
     std::atomic_bool stop_flag = false;
     std::thread thread;
-    SafeQueue<std::vector<std::any>> queue;
+    SafeQueue<pack> queue;
 
 public:
     device(const char* name, u_int netmask);
@@ -42,9 +42,9 @@ public:
     void set_filter(const std::string& filter);
 
     //不会阻塞，可能失败，失败时vec.empty() == true
-    std::vector<std::any> try_get();
+    std::optional<pack> try_get();
 
-    std::vector<std::vector<std::any>> get_all();
+    std::vector<pack> get_all();
 
     void start_capture();
 };
@@ -78,38 +78,3 @@ public:
 };
 
 device open_file(const QString& file_name);
-
-// 使用例
-// #include "handle_packet.h"
-// #include <iostream>
-// int main() {
-//     device_list devs;
-//     std::vector<QString> infos = devs.to_strings();
-//     for (uint i = 0; i < infos.size(); ++i)
-//         qDebug() << i << ' ' << infos[i] << '\n';
-//     //要把CMakeLists.txt换成CMakeLists-cmd.txt 或在qt里运行才有命令行输出功能
-//
-//     uint index;
-//     std::cin >> index;
-//     device dev = devs.open(index);
-//     if (dev.set_filter("") == false) //可选步骤，字符串也可为空
-//         return -1;
-//
-//     dev.start_capture(); //启动抓包，自动起了一个线程。不会在这阻塞
-//     while (true) {
-//         std::vector<std::any> packet = device.try_get();
-//
-//         //处理info...
-//         simple_info info = std::any_cast<simple_info>(packet[0]);
-//
-//         //处理以太帧...
-//         eth_header eth = std::any_cast<eth_header>(packet[1]); //第一项肯定是以太头
-//
-//         //处理网络层...
-//         if (packet[2].type() == typeid(ipv4_header)) {
-//             ...
-//         }else if...
-
-//     }
-//     dev.stop(); //在这里会阻塞，等待停止
-// }

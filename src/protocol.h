@@ -1,14 +1,12 @@
 #pragma once
 
-#include <QDateTime>
 #include <stdint.h>
 #include <string_view>
-#include <vector>
 //
 
-struct simple_info {
-    QDateTime t;
-    QVector<uint8_t> raw_data;
+struct blob {
+    uint16_t len;
+    uint8_t data[0];
 };
 
 struct eth_header {
@@ -104,7 +102,8 @@ struct icmp_packet_base {
 };
 
 struct icmp_packet : icmp_packet_base {
-    std::vector<uint8_t> data;
+    uint16_t len;
+    uint8_t data[0];
 };
 
 struct tcp_header_base {
@@ -166,8 +165,11 @@ struct dns_packet_base {
 };
 
 struct dns_packet : dns_packet_base {
-    std::vector<uint8_t> data;
+    uint16_t len;
+    uint8_t data[0];
 };
+
+// static_assert(std::is_trivial_v<dns_packet>);
 
 // enum class query_t : uint8_t { //查询的资源记录类型。
 //     A = 0x01,                  //指定计算机 IP 地址。

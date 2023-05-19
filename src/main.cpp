@@ -1,11 +1,13 @@
-#include "mainwindow.h"
+// #include "mainwindow.h"
 #include <QApplication>
 #include <QMessageBox>
+#include <qmainwindow.h>
 
 int main(int argc, char* argv[]) {
     QApplication a(argc, argv);
     try {
-        MainWindow w;
+        // MainWindow w;
+        QMainWindow w;
         w.show();
         return a.exec();
     } catch (std::exception& e) {
