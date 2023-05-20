@@ -6,7 +6,9 @@
 
 struct blob {
     uint16_t len;
-    uint8_t data[0];
+    const uint8_t* data() const {
+        return reinterpret_cast<const uint8_t*>(this + 1);
+    };
 };
 
 struct eth_header {
@@ -103,7 +105,9 @@ struct icmp_packet_base {
 
 struct icmp_packet : icmp_packet_base {
     uint16_t len;
-    uint8_t data[0];
+    const uint8_t* data() const {
+        return reinterpret_cast<const uint8_t*>(this + 1);
+    };
 };
 
 struct tcp_header_base {
@@ -166,7 +170,9 @@ struct dns_packet_base {
 
 struct dns_packet : dns_packet_base {
     uint16_t len;
-    uint8_t data[0];
+    const uint8_t* data() const {
+        return reinterpret_cast<const uint8_t*>(this + 1);
+    };
 };
 
 // enum class query_t : uint8_t { //查询的资源记录类型。
@@ -211,111 +217,111 @@ static_assert(sizeof(dns_packet_base) == 12);
 
 //
 
-#define STR(str) #str // STR(abc) == "abc"
+// #define STR(str) #str // STR(abc) == "abc"
 
-#define REFLECT(type)    \
-    template<typename R> \
-    R get(const type& x, std::string_view str)
+// #define REFLECT(type)    \
+//     template<typename R> \
+//     R get(const type& x, std::string_view str)
 
-#define FIELD(field) \
-    if (str == STR(field)) return (R)(x.field)
+// #define FIELD(field) \
+//     if (str == STR(field)) return (R)(x.field)
 
-REFLECT(eth_header) {
-    FIELD(dst);
-    FIELD(src);
-    FIELD(len);
-    FIELD(type);
-}
+// REFLECT(eth_header) {
+//     FIELD(dst);
+//     FIELD(src);
+//     FIELD(len);
+//     FIELD(type);
+// }
 
-REFLECT(arp_packet) {
-    FIELD(hardware_type);
-    FIELD(proto_type);
-    FIELD(mac_len);
-    FIELD(ip_len);
-    FIELD(op);
-    FIELD(src_mac);
-    FIELD(src_ip);
-    FIELD(dst_mac);
-    FIELD(dst_ip);
-}
+// REFLECT(arp_packet) {
+//     FIELD(hardware_type);
+//     FIELD(proto_type);
+//     FIELD(mac_len);
+//     FIELD(ip_len);
+//     FIELD(op);
+//     FIELD(src_mac);
+//     FIELD(src_ip);
+//     FIELD(dst_mac);
+//     FIELD(dst_ip);
+// }
 
-REFLECT(ipv4_header) {
-    FIELD(version);
-    FIELD(header_len);
-    FIELD(ds);
-    FIELD(len);
-    FIELD(id);
-    FIELD(df);
-    FIELD(mf);
-    FIELD(offset);
-    FIELD(ttl);
-    FIELD(proto);
-    FIELD(checksum);
-    FIELD(src);
-    FIELD(dst);
-    FIELD(op);
-}
+// REFLECT(ipv4_header) {
+//     FIELD(version);
+//     FIELD(header_len);
+//     FIELD(ds);
+//     FIELD(len);
+//     FIELD(id);
+//     FIELD(df);
+//     FIELD(mf);
+//     FIELD(offset);
+//     FIELD(ttl);
+//     FIELD(proto);
+//     FIELD(checksum);
+//     FIELD(src);
+//     FIELD(dst);
+//     FIELD(op);
+// }
 
-REFLECT(ipv6_header) {
-    FIELD(version);
-    FIELD(traffic_class);
-    FIELD(flow_label);
-    FIELD(payload_len);
-    FIELD(next_header);
-    FIELD(hop_limit);
-    FIELD(src);
-    FIELD(dst);
-}
+// REFLECT(ipv6_header) {
+//     FIELD(version);
+//     FIELD(traffic_class);
+//     FIELD(flow_label);
+//     FIELD(payload_len);
+//     FIELD(next_header);
+//     FIELD(hop_limit);
+//     FIELD(src);
+//     FIELD(dst);
+// }
 
-REFLECT(icmp_packet) {
-    FIELD(type);
-    FIELD(code);
-    FIELD(checksum);
-    FIELD(field);
-    FIELD(data);
-}
+// REFLECT(icmp_packet) {
+//     FIELD(type);
+//     FIELD(code);
+//     FIELD(checksum);
+//     FIELD(field);
+//     FIELD(data);
+// }
 
-REFLECT(tcp_header_base::flag_t) {
-    FIELD(cwr);
-    FIELD(ece);
-    FIELD(urg);
-    FIELD(ack);
-    FIELD(psh);
-    FIELD(rst);
-    FIELD(syn);
-    FIELD(fin);
-}
+// REFLECT(tcp_header_base::flag_t) {
+//     FIELD(cwr);
+//     FIELD(ece);
+//     FIELD(urg);
+//     FIELD(ack);
+//     FIELD(psh);
+//     FIELD(rst);
+//     FIELD(syn);
+//     FIELD(fin);
+// }
 
-REFLECT(tcp_header) {
-    FIELD(src);
-    FIELD(dst);
-    FIELD(seq);
-    FIELD(ack);
-    FIELD(header_len);
-    FIELD(flags);
-    FIELD(window_size);
-    FIELD(checksum);
-    FIELD(urgent_ptr);
-    FIELD(op);
-}
+// REFLECT(tcp_header) {
+//     FIELD(src);
+//     FIELD(dst);
+//     FIELD(seq);
+//     FIELD(ack);
+//     FIELD(header_len);
+//     FIELD(flags);
+//     FIELD(window_size);
+//     FIELD(checksum);
+//     FIELD(urgent_ptr);
+//     FIELD(op);
+// }
 
-REFLECT(udp_header) {
-    FIELD(src);
-    FIELD(dst);
-    FIELD(len);
-    FIELD(checksum);
-}
+// REFLECT(udp_header) {
+//     FIELD(src);
+//     FIELD(dst);
+//     FIELD(len);
+//     FIELD(checksum);
+// }
 
-REFLECT(dns_packet) {
-    FIELD(id);
-    FIELD(flags);
-    FIELD(questions);
-    FIELD(answer_rrs);
-    FIELD(authority_rrs);
-    FIELD(additional_rrs);
-    FIELD(data);
-}
+// REFLECT(dns_packet) {
+//     FIELD(id);
+//     FIELD(flags);
+//     FIELD(questions);
+//     FIELD(answer_rrs);
+//     FIELD(authority_rrs);
+//     FIELD(additional_rrs);
+//     FIELD(data);
+// }
 
-#undef FIELD
-#undef REFLECT
-#undef STR
+// #undef FIELD
+// #undef REFLECT
+// #undef STR

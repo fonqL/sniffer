@@ -6,7 +6,7 @@
 void packet::parse_unknown(const uint8_t* begin, const uint8_t* end, packet& pkt) {
     [[unlikely]] if (begin >= end + 1)
         return;
-    pkt.add(blob{.len = static_cast<uint16_t>(end - begin)}, begin, end);
+    pkt.add(blob{static_cast<uint16_t>(end - begin)}, begin, end);
 }
 
 template<>

@@ -138,32 +138,32 @@ public:
     // 添加定长头
     template<typename T>
     auto add(T&& a) -> std::remove_reference_t<T>& {
-        static_assert(std::is_trivial_v<T>);
+        static_assert(std::is_trivial_v<std::remove_reference_t<T>>);
 
         ensure_capacity(sizeof(T));
 
-        return add_impl(std::forward(a));
+        return add_impl(std::forward<T>(a));
     }
 
     // 添加定长头+最后的变长数据
     template<typename T>
     auto add(T&& a, const uint8_t* const begin, const uint8_t* const end) -> std::remove_reference_t<T>& {
-        static_assert(std::is_trivial_v<T>);
+        static_assert(std::is_trivial_v<std::remove_reference_t<T>>);
         size_t append_len = end - begin;
 
         ensure_capacity(sizeof(T) + append_len);
-        auto* ret = add_impl(std::forward(a));
+        auto& ret = add_impl(std::forward<T>(a));
 
         memcpy(r_end, begin, append_len);
         r_end += append_len;
 
-        return *ret;
+        return ret;
     }
 
     // 获得定长头（变长数据靠最后的零长数组获得
     template<typename T>
     const T* get() const noexcept {
-        static_assert(std::is_trivial_v<T>);
+        static_assert(std::is_trivial_v<std::remove_reference_t<T>>);
 
         auto* it = reinterpret_cast<const ltype*>(l_end);
         auto* end = reinterpret_cast<const ltype*>(mid);

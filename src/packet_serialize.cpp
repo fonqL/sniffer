@@ -4,7 +4,7 @@
 QDataStream& operator<<(QDataStream& ds, const std::vector<uint8_t>& x) {
     return ds.writeBytes(
         reinterpret_cast<const char*>(x.data()),
-        x.size());
+        static_cast<uint>(x.size()));
 }
 QDataStream& operator>>(QDataStream& ds, std::vector<uint8_t>& x) {
     char* data;
