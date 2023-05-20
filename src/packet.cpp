@@ -1,16 +1,17 @@
 #include "packet.h"
 #include <WinSock2.h>
 
-//
+// 解析报文相关
+
 void packet::parse_unknown(const uint8_t* begin, const uint8_t* end, packet& pkt) {
-    if (begin >= end + 1)
+    [[unlikely]] if (begin >= end + 1)
         return;
     pkt.add(blob{.len = static_cast<uint16_t>(end - begin)}, begin, end);
 }
 
 template<>
 void packet::parse_application<dns_packet>(const uint8_t* begin, const uint8_t* end, packet& pkt) {
-    if (begin + sizeof(dns_packet_base) >= end + 1)
+    [[unlikely]] if (begin + sizeof(dns_packet_base) >= end + 1)
         return;
     auto& dns = pkt.add(dns_packet{}, begin + sizeof(dns_packet_base), end);
     (dns_packet_base&)dns = *(dns_packet_base*)begin;
@@ -31,7 +32,7 @@ void packet::parse_application<dns_packet>(const uint8_t* begin, const uint8_t* 
 
 template<>
 void packet::parse_transport<tcp_header>(const uint8_t* begin, const uint8_t* end, packet& pkt) {
-    if (begin + sizeof(tcp_header_base) >= end + 1)
+    [[unlikely]] if (begin + sizeof(tcp_header_base) >= end + 1)
         return;
     auto& tcp = pkt.add(tcp_header{});
     (tcp_header_base&)tcp = *(tcp_header_base*)begin;
@@ -59,7 +60,7 @@ void packet::parse_transport<tcp_header>(const uint8_t* begin, const uint8_t* en
 
 template<>
 void packet::parse_transport<udp_header>(const uint8_t* begin, const uint8_t* end, packet& pkt) {
-    if (begin + sizeof(begin) >= end + 1)
+    [[unlikely]] if (begin + sizeof(begin) >= end + 1)
         return;
     auto& udp = pkt.add(*(udp_header*)begin); //reinterpret+const
 
@@ -80,7 +81,7 @@ void packet::parse_transport<udp_header>(const uint8_t* begin, const uint8_t* en
 
 template<>
 void packet::parse_transport<icmp_packet>(const uint8_t* begin, const uint8_t* end, packet& pkt) {
-    if (begin + sizeof(icmp_packet_base) >= end + 1)
+    [[unlikely]] if (begin + sizeof(icmp_packet_base) >= end + 1)
         return;
     auto& icmp = pkt.add(icmp_packet{}, begin + sizeof(icmp_packet_base), end);
     (icmp_packet_base&)icmp = *(icmp_packet_base*)begin;
@@ -92,7 +93,7 @@ void packet::parse_transport<icmp_packet>(const uint8_t* begin, const uint8_t* e
 
 template<>
 void packet::parse_network<ipv6_header>(const uint8_t* begin, const uint8_t* end, packet& pkt) {
-    if (begin + sizeof(ipv6_header) >= end + 1)
+    [[unlikely]] if (begin + sizeof(ipv6_header) >= end + 1)
         return;
     auto& ip6 = pkt.add(*(ipv6_header*)begin); //reinterpret+const
 
@@ -119,7 +120,7 @@ void packet::parse_network<ipv6_header>(const uint8_t* begin, const uint8_t* end
 
 template<>
 void packet::parse_network<ipv4_header>(const uint8_t* begin, const uint8_t* end, packet& pkt) {
-    if (begin + sizeof(ipv4_header_base) >= end + 1)
+    [[unlikely]] if (begin + sizeof(ipv4_header_base) >= end + 1)
         return;
     auto& ip = pkt.add(ipv4_header{});
     (ipv4_header_base&)ip = *(ipv4_header_base*)begin;
@@ -157,7 +158,7 @@ void packet::parse_network<ipv4_header>(const uint8_t* begin, const uint8_t* end
 
 template<>
 void packet::parse_network<arp_packet>(const uint8_t* begin, const uint8_t* end, packet& pkt) {
-    if (begin + sizeof(arp_packet) >= end + 1)
+    [[unlikely]] if (begin + sizeof(arp_packet) >= end + 1)
         return;
     auto& arp = pkt.add(*(arp_packet*)begin); // reinterpret+const
     arp.hardware_type = ntohs(arp.hardware_type);
@@ -167,7 +168,7 @@ void packet::parse_network<arp_packet>(const uint8_t* begin, const uint8_t* end,
 }
 
 void packet::parse_datalink(const uint8_t* begin, const uint8_t* end, packet& pkt) {
-    if (begin + sizeof(eth_header) >= end + 1)
+    [[unlikely]] if (begin + sizeof(eth_header) >= end + 1)
         return;
     auto& eth = pkt.add(*(eth_header*)begin);
     eth.len = ntohs(eth.len);

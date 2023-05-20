@@ -1,41 +1,47 @@
-// #pragma once
+#pragma once
 
-// #include <QVector>
-// //
+#include <QVector>
+//
 
-// // 分块vector，以免发生过大内存分配
-// // 要减少扩容时的开销。。强化实时性。。
-// class ProxyIntVector {
-//     size_t sz;
-//     QVector<QVector<int>> count;
+// 分块vector，以免发生过大内存分配
+// 要减少扩容时的开销。。强化实时性。。
+class ProxyIntVector {
+    size_t sz;
+    QVector<QVector<int>> count;
 
-// private:
-//     bool is_activate() const;
+private:
+    bool is_activate() const noexcept;
 
-//     void archive();
+    void archive();
 
-// public:
-//     ProxyIntVector();
+public:
+    ProxyIntVector();
 
-//     size_t size() const {
-//         return sz;
-//     }
+    ProxyIntVector(const ProxyIntVector&) = delete;
+    ProxyIntVector(ProxyIntVector&&) = delete;
+    ProxyIntVector& operator=(const ProxyIntVector&) = delete;
+    ProxyIntVector& operator=(ProxyIntVector&&) = delete;
+    ~ProxyIntVector() = default;
 
-//     int at(size_t i) const {
-//         return (*this)[i];
-//     }
+    size_t size() const noexcept {
+        return sz;
+    }
 
-//     int operator[](size_t i) const;
+    int at(size_t i) const noexcept {
+        return (*this)[i];
+    }
 
-//     void push_back(int x);
+    int operator[](size_t i) const;
 
-//     void clear();
+    void push_back(int x);
 
-//     operator std::vector<int>() const {
-//         std::vector<int> ret;
-//         for (auto& i: count)
-//             for (auto j: i)
-//                 ret.push_back(j);
-//         return ret;
-//     }
-// };
+    void clear();
+
+    operator std::vector<int>() const {
+        std::vector<int> ret;
+        for (auto& i: count)
+            for (auto j: i)
+                ret.push_back(j);
+        return ret;
+    }
+};

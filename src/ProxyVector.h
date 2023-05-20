@@ -1,51 +1,59 @@
-// #pragma once
+#pragma once
 
-// #include <QtSql>
-// #include <any>
-// #include <chrono>
-// #include <vector>
+#include "packet.h"
+#include <QtSql>
+#include <chrono>
+#include <vector>
 
-// //
+//
 
-// class ProxyVector {
-//     size_t offset;
-//     size_t sz;
-//     QSqlDatabase db;
-//     std::vector<std::vector<std::any>> packets;
-//     std::vector<QByteArray> blobCache;
-//     std::chrono::steady_clock::time_point lastTime;
+class ProxyVector {
+    size_t offset;
+    size_t sz;
+    QSqlDatabase db;
+    std::vector<pack> packets;
 
-// private:
-//     bool is_activate() const;
+    // 在push_back pack进来时就对其序列化保存在缓存中，减小峰值开销。
+    std::vector<QByteArray> blobCache;
 
-//     void sql_assert(bool e) {
-//         if (!e) throw std::runtime_error{"sql error"};
-//     }
+    std::chrono::steady_clock::time_point lastTime;
 
-//     void exec(const QString& s) {
-//         sql_assert(QSqlQuery{}.exec(s));
-//     }
+private:
+    bool is_activate() const;
 
-//     void archive();
+    static void sql_assert(bool e) {
+        [[unlikely]] if (!e)
+            throw std::runtime_error{"sql error"};
+    }
 
-// public:
-//     ProxyVector();
+    void exec(const QString& s) {
+        sql_assert(QSqlQuery{}.exec(s));
+    }
 
-//     ~ProxyVector() { clear(); }
+    void archive();
 
-//     size_t size() const {
-//         return sz;
-//     }
+public:
+    ProxyVector();
+    ProxyVector(const ProxyVector&) = delete;
+    ProxyVector(ProxyVector&&) = delete;
+    ProxyVector& operator=(ProxyVector&&) = delete;
+    ProxyVector& operator=(const ProxyVector&) = delete;
 
-//     const std::vector<std::any>&
-//     at(size_t i) {
-//         return (*this)[i];
-//     }
+    ~ProxyVector() { clear(); }
 
-//     const std::vector<std::any>&
-//     operator[](size_t i);
+    size_t size() const {
+        return sz;
+    }
 
-//     void push_back(std::vector<std::any>&& x);
+    const pack&
+    at(size_t i) {
+        return (*this)[i];
+    }
 
-//     void clear();
-// };
+    const pack&
+    operator[](size_t i);
+
+    void push_back(pack&& x);
+
+    void clear();
+};

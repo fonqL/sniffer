@@ -22,25 +22,32 @@ using namespace std::chrono_literals;
 device::device(const char* name, u_int netmask)
     : netmask(netmask) {
     char errbuf[PCAP_ERRBUF_SIZE];
-    src = pcap_create(name, errbuf);
-    if (src == nullptr) throw std::runtime_error{errbuf};
+
+    pcap_assert(src = pcap_create(name, errbuf), errbuf);
+
     pcap_set_snaplen(src, 65536);
     pcap_set_promisc(src, PCAP_OPENFLAG_PROMISCUOUS);
     pcap_set_timeout(src, 500);
     pcap_set_immediate_mode(src, false);
     pcap_setuserbuffer(src, 1'000'000);
     pcap_set_buffer_size(src, 1'000'000);
-    if (int e = pcap_activate(src)) throw std::runtime_error{pcap_statustostr(e)};
 
-    if (pcap_datalink(src) != DLT_EN10MB)
+    pcap_assert(pcap_activate(src));
+
+    [[unlikely]] if (pcap_datalink(src) != DLT_EN10MB)
         pcap_close(src), throw std::runtime_error{"only for Ethernet networks."};
+
     // 打开备份文件，用于保存操作
     const auto& tmp = DEFAULT_FILENAME.toLocal8Bit();
     file = pcap_dump_open(src, tmp.data());
-    if (file == nullptr) pcap_close(src), throw std::runtime_error{"pcap_dump_open"};
+    [[unlikely]] if (file == nullptr) {
+        char* msg = pcap_geterr(src);
+        pcap_close(src);
+        throw std::runtime_error{msg};
+    }
 }
 
-device::device(device&& x)
+device::device(device&& x) noexcept
     : src(x.src),
       file(x.file),
       netmask(x.netmask),
@@ -82,12 +89,11 @@ void device::stop() {
 }
 
 void device::set_filter(const std::string& filter) {
-    if (filter.size() >= PCAP_BUF_SIZE) throw std::overflow_error{"filter string too long"};
+    pcap_assert(filter.size() < PCAP_BUF_SIZE, "filter string too long");
 
-    int e = pcap_compile(src, &fcode, filter.data(), 1, netmask);
-    if (e < 0) throw std::runtime_error{"capture filter syntax error"};
-    e = pcap_setfilter(src, &fcode);
-    if (e < 0) throw std::runtime_error{"pcap_setfilter"};
+    _pcap_assert(pcap_compile(src, &fcode, filter.data(), 1, netmask));
+
+    _pcap_assert(pcap_setfilter(src, &fcode));
 }
 
 std::optional<pack> device::try_get() {
@@ -109,6 +115,7 @@ void device::start_capture() {
             [[unlikely]] if (pkt.empty()) {
                 continue;
             }
+
             pack res = {
                 QDateTime::fromSecsSinceEpoch(header->ts.tv_sec)
                     + std::chrono::milliseconds{header->ts.tv_usec / 1000},
@@ -125,18 +132,17 @@ void device::start_capture() {
 device_list::device_list()
     : sz(0) {
     char errbuf[PCAP_ERRBUF_SIZE];
-    int e = pcap_findalldevs(&header, errbuf);
-    if (e == PCAP_ERROR) throw std::runtime_error{errbuf};
+    pcap_assert(pcap_findalldevs(&header, errbuf), errbuf);
     for (auto* dev = header; dev != nullptr; dev = dev->next) {
         ++sz;
     }
 }
 
-bool device_list::is_empty() const {
+bool device_list::empty() const noexcept {
     return header == nullptr;
 }
 
-uint device_list::size() const {
+uint device_list::size() const noexcept {
     return sz;
 }
 
@@ -169,20 +175,20 @@ device_list::~device_list() {
         pcap_freealldevs(header);
 }
 
-device_list::device_list(device_list&& x)
+device_list::device_list(device_list&& x) noexcept
     : header(x.header), sz(x.sz) {
     x.header = nullptr;
 }
 
 device open_file(const QString& file_name) {
-    if (file_name.size() >= PCAP_BUF_SIZE) throw std::overflow_error("filename too long");
+    pcap_assert(file_name.size() < PCAP_BUF_SIZE, "filename too long");
 
     char ret_name[PCAP_BUF_SIZE];
     char errbuf[PCAP_ERRBUF_SIZE];
     const QByteArray& arg_name = file_name.toLocal8Bit();
 
-    int e = pcap_createsrcstr(ret_name, PCAP_SRC_FILE, nullptr, nullptr, arg_name.data(), errbuf);
-    if (e != 0) throw std::runtime_error{errbuf};
-
+    pcap_assert(
+        pcap_createsrcstr(ret_name, PCAP_SRC_FILE, nullptr, nullptr, arg_name.data(), errbuf),
+        errbuf);
     return {ret_name, 0xffffff};
 }

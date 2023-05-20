@@ -22,9 +22,9 @@ public:
         : circleBuffer(128), header(0), tail(0), sz(0) {
     }
 
-    size_t size() const { return sz; }
+    size_t size() const noexcept { return sz; }
 
-    const std::vector<QString>& operator[](size_t i) const {
+    const std::vector<QString>& operator[](size_t i) const noexcept {
         return circleBuffer[inc(header, i)].value();
     }
 
@@ -43,13 +43,13 @@ public:
         ++sz;
     }
 
-    void pop_front() {
+    void pop_front() noexcept {
         circleBuffer[header].reset();
         header = inc(header, 1);
         --sz;
     }
 
-    void clear() {
+    void clear() noexcept {
         header = tail = sz = 0;
         std::fill(circleBuffer.begin(), circleBuffer.end(), std::nullopt);
     }

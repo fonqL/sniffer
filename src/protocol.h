@@ -169,8 +169,6 @@ struct dns_packet : dns_packet_base {
     uint8_t data[0];
 };
 
-// static_assert(std::is_trivial_v<dns_packet>);
-
 // enum class query_t : uint8_t { //查询的资源记录类型。
 //     A = 0x01,                  //指定计算机 IP 地址。
 //     NS = 0x02,                 //指定用于命名区域的 DNS 名称服务器。

@@ -7,6 +7,8 @@
 #include <typeindex>
 #include <vector>
 
+class QDataStream;
+
 // 异质容器
 class packet {
 private:
@@ -15,13 +17,17 @@ private:
 
     using ltype = std::pair<std::type_index, size_t>;
 
-    struct _impl : Alloc<uint8_t> {
+    // ！！绝对不能写赋值和析构！！就是要这样调裸的函数！！
+    struct _impl : private Alloc<uint8_t> {
         uint8_t* begin = nullptr;
         uint8_t* end = nullptr;
 
-        // 不回收
-        void reallocate(size_t size) {
-            begin = allocate(size);
+        void deallocate() {
+            Alloc<uint8_t>::deallocate(begin, end - begin);
+        }
+
+        void allocate(size_t size) {
+            begin = Alloc<uint8_t>::allocate(size);
             end = begin + size;
         }
     };
@@ -45,7 +51,7 @@ public:
     };
     ~packet() {
         if (impl.begin != nullptr)
-            impl.deallocate(impl.begin, impl.end - impl.begin);
+            impl.deallocate();
     }
 
 public:
@@ -89,21 +95,22 @@ public:
 private:
     // 扩容
     void expand(size_t atlease_r) {
-        uint8_t* old_begin = impl.begin;
         size_t size = r_end - l_end;
         size_t lsize = mid - l_end;
         size_t rsize = r_end - mid;
-        impl.reallocate(2 * (std::max(lsize, sizeof(ltype)) + std::max(rsize, atlease_r)));
 
-        mid = impl.begin + 2 * std::max(lsize, sizeof(ltype));
+        _impl newimpl;
+        newimpl.allocate(2 * (std::max(lsize, sizeof(ltype)) + std::max(rsize, atlease_r)));
+
+        mid = newimpl.begin + 2 * std::max(lsize, sizeof(ltype));
 
         uint8_t* old_l = l_end;
         l_end = mid - lsize;
         r_end = mid + rsize;
 
         memcpy(l_end, old_l, size);
-
-        impl.deallocate(old_begin, size);
+        impl.deallocate();
+        impl = newimpl;
     }
 
     void ensure_capacity(size_t atlease_r) {
@@ -170,7 +177,7 @@ public:
 
     template<typename T>
     const T& at() const {
-        if (auto* res = get<T>()) {
+        [[likely]] if (auto* res = get<T>()) {
             return *res;
         } else {
             throw std::out_of_range("packet::at");
@@ -194,6 +201,10 @@ private:
 
     static void parse_unknown(const uint8_t* begin, const uint8_t* end, packet& pkt);
 
+public:
+    friend QDataStream& operator<<(QDataStream& ds, const packet& pkt);
+    friend QDataStream& operator>>(QDataStream& ds, packet& pkt);
+
 private:
     _impl impl;
     uint8_t* mid = nullptr;
@@ -203,6 +214,13 @@ private:
     // 拓展，实现高级协议(如http时)还是需要靠vector any
     // std::vector<std::any> advanced_proto;
 };
+
+//
+
+QDataStream& operator<<(QDataStream& ds, const packet& pkt);
+QDataStream& operator>>(QDataStream& ds, packet& pkt);
+
+//
 
 template<>
 void packet::parse_network<ipv6_header>(const uint8_t* begin, const uint8_t* end, packet& pkt);
@@ -225,8 +243,13 @@ void packet::parse_transport<icmp_packet>(const uint8_t* begin, const uint8_t* e
 template<>
 void packet::parse_application<dns_packet>(const uint8_t* begin, const uint8_t* end, packet& pkt);
 
+//
+
 struct pack {
     QDateTime time;
     std::vector<uint8_t> raw;
     packet parsed;
 };
+
+QDataStream& operator<<(QDataStream& ds, const pack& pkt);
+QDataStream& operator>>(QDataStream& ds, pack& pkt);
