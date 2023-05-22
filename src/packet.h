@@ -1,7 +1,6 @@
 #pragma once
 #include "protocol.h"
 #include <QDateTime>
-#include <cassert>
 #include <stdexcept>
 #include <type_traits>
 #include <typeindex>
@@ -185,6 +184,32 @@ public:
     }
 
 public:
+    QString highest_proto() const {
+        auto x = reinterpret_cast<ltype*>(l_end)->first;
+        if (x == typeid(blob)) {
+            x = reinterpret_cast<ltype*>(l_end + 1)->first;
+        }
+        if (x == typeid(eth_header))
+            return "以太帧";
+        else if (x == typeid(arp_packet))
+            return "ARP";
+        else if (x == typeid(ipv4_header))
+            return "IPv4";
+        else if (x == typeid(ipv6_header))
+            return "IPv6";
+        else if (x == typeid(icmp_packet))
+            return "ICMP";
+        else if (x == typeid(tcp_header))
+            return "TCP";
+        else if (x == typeid(udp_header))
+            return "UDP";
+        else if (x == typeid(dns_packet))
+            return "DNS";
+        else [[unlikely]]
+            throw std::runtime_error{"invalid status"};
+    }
+
+public:
     static packet parse_packet(const uint8_t* begin, const uint8_t* end);
 
 private:
@@ -249,6 +274,23 @@ struct pack {
     QDateTime time;
     std::vector<uint8_t> raw;
     packet parsed;
+
+    QString time_str() const { return time.toString("MM/dd hh:mm:ss"); }
+    QString raw_str() const {
+        std::vector<char> tmpbuf(raw.size() * 5, '\0');
+        int offset = 0;
+        for (int i = 0; i < raw.size(); i++) {
+            offset += sprintf(tmpbuf.data() + offset, "%02hx ", raw[i]);
+            if ((i + 1) % 16 == 0)
+                tmpbuf[offset++] = '\n';
+            else if ((i + 1) % 8 == 0)
+                offset += sprintf(tmpbuf.data() + offset, "   ");
+        }
+        return QString::fromLocal8Bit(tmpbuf.data(), offset);
+    }
+    QString raw_len() const {
+        return QString::number(raw.size());
+    }
 };
 
 QDataStream& operator<<(QDataStream& ds, const pack& pkt);

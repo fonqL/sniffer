@@ -89,11 +89,11 @@ public:
     }
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override {
-        return m_dataVector.size();
+        return static_cast<int>(m_dataVector.size());
     }
 
     int columnCount(const QModelIndex& parent = QModelIndex()) const override {
-        return m_header.size();
+        return static_cast<int>(m_header.size());
     }
 
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override {
@@ -108,7 +108,7 @@ public:
     }
 
     void appendRow(std::vector<QString>&& rows) {
-        beginInsertRows({}, m_dataVector.size(), m_dataVector.size());
+        beginInsertRows({}, int(m_dataVector.size()), int(m_dataVector.size()));
         m_dataVector.push_back(std::move(rows));
         endInsertRows();
     }
@@ -122,7 +122,7 @@ public:
     void clear() {
         if (m_dataVector.size() == 0)
             return;
-        beginRemoveRows({}, 0, m_dataVector.size() - 1);
+        beginRemoveRows({}, 0, int(m_dataVector.size() - 1));
         m_dataVector.clear();
         endRemoveRows();
     }

@@ -51,10 +51,10 @@ void packet::parse_transport<tcp_header>(const uint8_t* begin, const uint8_t* en
     begin += tcp.header_len * 4;
     auto tcp_type = tcp.type();
     switch (tcp_type) {
-        case 53:
-            return parse_application<dns_packet>(begin, end, pkt);
-        default:
-            return parse_unknown(begin, end, pkt);
+    case 53:
+        return parse_application<dns_packet>(begin, end, pkt);
+    default:
+        return parse_unknown(begin, end, pkt);
     }
 }
 
@@ -72,10 +72,10 @@ void packet::parse_transport<udp_header>(const uint8_t* begin, const uint8_t* en
     begin += sizeof(udp);
     auto udp_type = udp.type();
     switch (udp_type) {
-        case 53:
-            return parse_application<dns_packet>(begin, end, pkt);
-        default:
-            return parse_unknown(begin, end, pkt);
+    case 53:
+        return parse_application<dns_packet>(begin, end, pkt);
+    default:
+        return parse_unknown(begin, end, pkt);
     }
 }
 
@@ -107,14 +107,14 @@ void packet::parse_network<ipv6_header>(const uint8_t* begin, const uint8_t* end
     begin += sizeof(ip6); //这里没错，ipv6不是变长的
     auto ip6_next_header = ip6.next_header;
     switch (ip6_next_header) {
-        case ipv6_header::TCP:
-            return parse_transport<tcp_header>(begin, end, pkt);
-        case ipv6_header::UDP:
-            return parse_transport<udp_header>(begin, end, pkt);
-        // case ipv6_header::IPv6:
-        //     return parse_network<ipv6_header>(begin, end, pkt);
-        default:
-            return parse_unknown(begin, end, pkt);
+    case ipv6_header::TCP:
+        return parse_transport<tcp_header>(begin, end, pkt);
+    case ipv6_header::UDP:
+        return parse_transport<udp_header>(begin, end, pkt);
+    // case ipv6_header::IPv6:
+    //     return parse_network<ipv6_header>(begin, end, pkt);
+    default:
+        return parse_unknown(begin, end, pkt);
     }
 }
 
@@ -141,18 +141,18 @@ void packet::parse_network<ipv4_header>(const uint8_t* begin, const uint8_t* end
     begin += ip.header_len * 4;
     auto ip_proto = ip.proto;
     switch (ip_proto) {
-        case ipv4_header::ICMP:
-            return parse_transport<icmp_packet>(begin, end, pkt);
-        // case ipv4_header::IPv4:
-        //     return parse_network<ipv4_header>(begin, end, pkt);
-        case ipv4_header::TCP:
-            return parse_transport<tcp_header>(begin, end, pkt);
-        case ipv4_header::UDP:
-            return parse_transport<udp_header>(begin, end, pkt);
-        // case ipv4_header::IPv6:
-        //     return parse_network<ipv6_header>(begin, end, pkt);
-        default:
-            return parse_unknown(begin, end, pkt);
+    case ipv4_header::ICMP:
+        return parse_transport<icmp_packet>(begin, end, pkt);
+    // case ipv4_header::IPv4:
+    //     return parse_network<ipv4_header>(begin, end, pkt);
+    case ipv4_header::TCP:
+        return parse_transport<tcp_header>(begin, end, pkt);
+    case ipv4_header::UDP:
+        return parse_transport<udp_header>(begin, end, pkt);
+    // case ipv4_header::IPv6:
+    //     return parse_network<ipv6_header>(begin, end, pkt);
+    default:
+        return parse_unknown(begin, end, pkt);
     }
 }
 
@@ -175,14 +175,14 @@ void packet::parse_datalink(const uint8_t* begin, const uint8_t* end, packet& pk
     begin += sizeof(eth);
     auto eth_type = eth.type;
     switch (eth_type) {
-        case eth_header::IPv4:
-            return parse_network<ipv4_header>(begin, end, pkt);
-        case eth_header::ARP:
-            return parse_network<arp_packet>(begin, end, pkt);
-        case eth_header::IPv6:
-            return parse_network<ipv6_header>(begin, end, pkt);
-        default:
-            return parse_unknown(begin, end, pkt);
+    case eth_header::IPv4:
+        return parse_network<ipv4_header>(begin, end, pkt);
+    case eth_header::ARP:
+        return parse_network<arp_packet>(begin, end, pkt);
+    case eth_header::IPv6:
+        return parse_network<ipv6_header>(begin, end, pkt);
+    default:
+        return parse_unknown(begin, end, pkt);
     }
 }
 

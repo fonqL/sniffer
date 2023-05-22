@@ -1,69 +1,94 @@
-// #include "mainwindow.h"
-// #include "./ui_mainwindow.h"
-// #include "CustomItemModel.h"
+#include "mainwindow.h"
+#include "CustomItemModel.h"
+#include "src/ui_mainwindow.h"
+
 // #include "charts.h"
-// #include <QStandardItemModel>
-// #include <QSystemTrayIcon>
-// #include <QTimer>
-// //
+#include <QStandardItemModel>
+#include <QSystemTrayIcon>
+#include <QTimer>
+//
 
-// // 1这两个函数多次引用，不易重构
-// // 已有记录，不用更新统计量
-// void MainWindow::showRow(int i) {
-//     analysis ana(this->packets[i]);
-//     showRow(i, ana);
-// }
+// charts.h 与pcap冲突，两个cpp文件吧。。
 
-// // 2这两个函数多次引用，不易重构
-// // 界面新增记录展示的核心函数
-// // 解析结果传给qt界面
-// void MainWindow::showRow(int i, const analysis& ana) {
-//     //超过显示最大数目
-//     if (this->model->rowCount() >= this->MAXSHOW) {
-//         this->model->removeOneRow();
-//     }
-//     this->model->appendRow({
-//         QString::number(i + 1),
-//         ana.time,
-//         ana.header,
-//         ana.srcIp,
-//         ana.desIp,
-//         ana.len,
-//         //
-//     });
-// }
+// 已有记录，不用更新统计量
+void MainWindow::showRow(size_t i) {
+    showRow(i, this->packets[i]);
+}
 
-// // 只有唯一调用 todo
-// // 添加新记录，要更新统计量
-// void MainWindow::addRow(int i) {
-//     analysis ana(this->packets[i]);
-//     if (ana.type == "IPv4") {
-//         this->count.ipv4_c.push_back(i);
-//     } else if (ana.type == "IPv6") {
-//         this->count.ipv6_c.push_back(i);
-//     } else if (ana.type == "ARP") {
-//         this->count.arp_c.push_back(i);
-//     } else if (ana.type == "other") {
-//         this->count.other_c.push_back(i);
-//     }
+// 界面新增记录展示的核心函数
+// 解析结果传给qt界面
+// 包必须和序号一起传过来，因为包没与序号关联。。即无状态。。
+void MainWindow::showRow(size_t i, const pack& x) {
+    //超过显示最大数目
+    if (this->model->rowCount() >= this->MAXSHOW) {
+        this->model->removeOneRow();
+    }
+    auto [src, dst] = [&]() -> std::pair<QString, QString> {
+        if (auto p = x.parsed.get<ipv4_header>()) {
+            return {p->srcip(), p->dstip()};
+        } else if (auto p = x.parsed.get<ipv6_header>()) {
+            return {p->srcip(), p->dstip()};
+        } else if (auto p = x.parsed.get<arp_packet>()) {
+            return {p->srcip(), p->dstip()};
+        }
+        return {"unknown", "unknown"};
+    }();
+    this->model->appendRow({
+        QString::number(i + 1),
+        x.time_str(),
+        x.parsed.highest_proto(),
+        src,
+        dst,
+        x.raw_len(),
+        //
+    });
+}
 
-//     if (ana.header == "icmp") {
-//         this->count.icmp_c.push_back(i);
-//     } else if (ana.header == "tcp") {
-//         this->count.tcp_c.push_back(i);
-//     } else if (ana.header == "udp") {
-//         this->count.udp_c.push_back(i);
-//     } else if (ana.header == "other") {
-//         this->count.other_header_c.push_back(i);
-//     }
+// 只有唯一调用 todo
+// 字符串化，添加新记录，要更新统计量
+void MainWindow::addRow(pack x) {
+    size_t idx = this->packets.size();
+    auto& packet = x.parsed;
 
-//     if (ana.app == "dns") {
-//         this->count.dns_c.push_back(i);
-//     } else if (ana.app == "other") {
-//         this->count.other_app_c.push_back(i);
-//     }
-//     this->showRow(i, ana);
-// }
+    switch (packet.at<eth_header>().type) {
+    case eth_header::ARP: {
+        this->count.arp_c.push_back(idx);
+        break;
+    }
+    case eth_header::IPv4: {
+        this->count.ipv4_c.push_back(idx);
+        break;
+    }
+    case eth_header::IPv6: {
+        this->count.ipv6_c.push_back(idx);
+        break;
+    }
+    default: this->count.other_c.push_back(idx);
+    }
+
+    if (packet.size() >= 3) {
+        if (packet.get<icmp_packet>()) {
+            this->count.icmp_c.push_back(idx);
+        } else if (packet.get<tcp_header>()) {
+            this->count.tcp_c.push_back(idx);
+        } else if (packet.get<udp_header>()) {
+            this->count.udp_c.push_back(idx);
+        } else {
+            this->count.other_header_c.push_back(idx);
+        }
+    }
+
+    if (packet.size() >= 4) {
+        if (packet.get<dns_packet>()) {
+            this->count.dns_c.push_back(idx);
+        } else {
+            this->count.other_app_c.push_back(idx);
+        }
+    }
+
+    this->showRow(idx, x);
+    this->packets.push_back(std::move(x));
+}
 
 // // 太长了。。todo
 // void MainWindow::showDetails(int i) {
@@ -94,11 +119,12 @@
 //         ip_d->appendRow(new QStandardItem("长度: " + ana.len));
 //         ip_d->appendRow(new QStandardItem("tos: " + QString::asprintf("0X%02x", ana.ipv4.ds)));
 //         ip_d->appendRow(new QStandardItem("ttl: " + QString::asprintf("0X%02x", ana.ipv4.ttl)));
+//         ip_d->appendRow(new QStandardItem("id: " + QString::asprintf("%d", (int)ana.ipv4.id)));
 //         QStandardItem* flag = new QStandardItem("flag");
-//         flag->appendRow(new QStandardItem("id: " + QString::asprintf("%d", (int)ana.ipv4.id)));
 //         flag->appendRow(new QStandardItem("DF: " + QString::asprintf("%d", (int)ana.ipv4.df)));
 //         flag->appendRow(new QStandardItem("MF: " + QString::asprintf("%d", (int)ana.ipv4.mf)));
-//         flag->appendRow(new QStandardItem("offset: " + QString::asprintf("%d", (int)ana.ipv4.offset)));
+
+//         ip_d->appendRow(new QStandardItem("offset: " + QString::asprintf("%d", (int)ana.ipv4.offset)));
 //         ip_d->appendRow(flag);
 
 //         ip_d->appendRow(new QStandardItem("校验和: " + QString::asprintf("%d", (int)ana.ipv4.checksum)));
@@ -529,53 +555,47 @@
 //     });
 // }
 
-// // 定期抽样统计数据
-// void MainWindow::countUpdate(QDateTime t) {
-//     Count_time c_t;
-//     c_t.time = t;
-//     c_t.arp = this->count.arp_c.size();
-//     c_t.ipv4 = this->count.ipv4_c.size();
-//     c_t.ipv6 = this->count.ipv6_c.size();
-//     c_t.other = this->count.other_c.size();
-//     c_t.icmp = this->count.icmp_c.size();
-//     c_t.tcp = this->count.tcp_c.size();
-//     c_t.udp = this->count.udp_c.size();
-//     c_t.other_h = this->count.other_header_c.size();
-//     c_t.dns = this->count.dns_c.size();
-//     c_t.other_a = this->count.other_app_c.size();
-//     this->count_t.push_back(c_t);
-// }
+// 定期抽样统计数据
+void MainWindow::countUpdate(QDateTime t) {
+    Count_time c_t;
+    c_t.time = std::move(t);
+    c_t.arp = this->count.arp_c.size();
+    c_t.ipv4 = this->count.ipv4_c.size();
+    c_t.ipv6 = this->count.ipv6_c.size();
+    c_t.other = this->count.other_c.size();
+    c_t.icmp = this->count.icmp_c.size();
+    c_t.tcp = this->count.tcp_c.size();
+    c_t.udp = this->count.udp_c.size();
+    c_t.other_h = this->count.other_header_c.size();
+    c_t.dns = this->count.dns_c.size();
+    c_t.other_a = this->count.other_app_c.size();
 
-// void MainWindow::timerUpdate() {
-//     auto tmp_packets = this->dev->get_all();
-//     if (tmp_packets.empty())
-//         return;
+    this->count_t.push_back(c_t);
+}
 
-//     for (auto& pkt: tmp_packets) { //处理info...
-//         auto& t = std::any_cast<simple_info&>(pkt[0]).t;
-//         if (t > time_record.addSecs(300)) {
-//             countUpdate(t);
-//             time_record = t;
-//         }
+void MainWindow::timerUpdate() {
+    auto tmp_packs = this->dev->get_all();
+    if (tmp_packs.empty()) return;
 
-//         this->packets.push_back(std::move(pkt));
+    for (auto& pkt: tmp_packs) { //处理info...
+        auto& t = pkt.time;
+        if (time_record.addSecs(300) < t) {
+            countUpdate(t);
+            time_record = t;
+        }
 
-//         int index = this->packets.size();
+        addRow(std::move(pkt));
+    }
+    // 批量处理后一次性滑动到底部 todo
+    ui->tableView->scrollToBottom();
 
-//         // 这里将包字符串化，用的是packets.back()传入参数
-//         // 很离谱。。。todo
-//         this->addRow(index - 1);
-//     }
-//     // 批量处理后一次性滑动到底部 todo
-//     ui->tableView->scrollToBottom();
+    this->textEdit->setText(QString::asprintf(
+        "  ipv4: %d  ipv6: %d  arp: %d  other %d || icmp: %d  tcp: %d  udp %d  other %d || dns: %d  other: %d",
+        this->count.ipv4_c.size(), this->count.ipv6_c.size(), this->count.arp_c.size(), this->count.other_c.size(),
+        this->count.icmp_c.size(), this->count.tcp_c.size(), this->count.udp_c.size(), this->count.other_header_c.size(),
+        this->count.dns_c.size(), this->count.other_app_c.size()));
+}
 
-//     this->textEdit->setText(QString::asprintf(
-//         "  ipv4: %d  ipv6: %d  arp: %d  other %d || icmp: %d  tcp: %d  udp %d  other %d || dns: %d  other: %d",
-//         this->count.ipv4_c.size(), this->count.ipv6_c.size(), this->count.arp_c.size(), this->count.other_c.size(),
-//         this->count.icmp_c.size(), this->count.tcp_c.size(), this->count.udp_c.size(), this->count.other_header_c.size(),
-//         this->count.dns_c.size(), this->count.other_app_c.size()));
-// }
-
-// MainWindow::~MainWindow() {
-//     delete ui;
-// }
+MainWindow::~MainWindow() {
+    delete ui;
+}

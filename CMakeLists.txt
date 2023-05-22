@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 
 project(sniffer VERSION 0.1 LANGUAGES CXX)
 
-add_compile_definitions(NOMINMAX)
+add_compile_definitions(NOMINMAX _CRT_SECURE_NO_WARNINGS _WINSOCKAPI_)
 
 if(MSVC)
     add_compile_options(/utf-8)
@@ -21,9 +21,9 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Charts Sql)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Charts Sql)
 
 file(GLOB PROJECT_SOURCES
-	"src/**.cpp"
-	"src/**.h"
-	"src/**.ui"
+	"src/*.cpp"
+	# "src/*.h"
+    "src/*.ui"
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

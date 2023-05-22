@@ -1,35 +1,35 @@
-#include "ProxyIntVector.h"
-#include <QDataStream>
-//
+// #include "ProxyIntVector.h"
+// #include <QDataStream>
+// //
 
-static constexpr size_t LENGTH = 1'000'000;
+// static constexpr size_t LENGTH = 1'000'000;
 
-ProxyIntVector::ProxyIntVector()
-    : sz(0), count(1) {
-}
+// ProxyIntVector::ProxyIntVector()
+//     : sz(0), count(1) {
+// }
 
-bool ProxyIntVector::is_activate() const noexcept {
-    return count.back().size() >= LENGTH;
-}
+// bool ProxyIntVector::is_activate() const noexcept {
+//     return count.back().size() >= LENGTH;
+// }
 
-void ProxyIntVector::archive() {
-    count.push_back({});
-}
+// void ProxyIntVector::archive() {
+//     count.push_back({});
+// }
 
-void ProxyIntVector::push_back(int x) {
-    if (is_activate()) {
-        archive();
-    }
-    ++sz;
-    count.back().push_back(x);
-}
+// void ProxyIntVector::push_back(int x) {
+//     if (is_activate()) {
+//         archive();
+//     }
+//     ++sz;
+//     count.back().push_back(x);
+// }
 
-int ProxyIntVector::operator[](size_t i) const {
-    return count[i / LENGTH][i % LENGTH];
-}
+// int ProxyIntVector::operator[](size_t i) const {
+//     return count[i / LENGTH][i % LENGTH];
+// }
 
-void ProxyIntVector::clear() {
-    count.clear();
-    count.push_back({});
-    sz = 0;
-}
+// void ProxyIntVector::clear() {
+//     count.clear();
+//     count.push_back({});
+//     sz = 0;
+// }
