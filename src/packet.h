@@ -227,7 +227,7 @@ private:
     static void parse_unknown(const uint8_t* begin, const uint8_t* end, packet& pkt);
 
 public:
-    void handle(auto f) const;
+    void traverse(auto f) const;
 
 public:
     friend QDataStream& operator<<(QDataStream& ds, const packet& pkt);
@@ -406,6 +406,6 @@ void handle(const eth_header& eth, size_t cnt, auto f) {
 }
 
 } // namespace packet_impl
-void packet::handle(auto f) const {
+void packet::traverse(auto f) const {
     ::packet_impl::handle(*reinterpret_cast<const eth_header*>(mid), size(), std::move(f));
 }

@@ -18,9 +18,11 @@ void MainWindow::addRow(pack x) {
     size_t idx = this->packets.size();
     auto& packet = x.parsed;
 
-    packet.handle([this, idx, depth = 0]<typename T>(const T& proto) mutable {
+    packet.traverse([this, idx, depth = 0]<typename T>(const T& proto) mutable {
         ++depth;
-        if constexpr (std::is_same_v<T, arp_packet>) {
+        if constexpr (std::is_same_v<T, eth_header>) {
+            ; //none
+        } else if constexpr (std::is_same_v<T, arp_packet>) {
             this->count.arp_c.push_back(idx);
         } else if constexpr (std::is_same_v<T, ipv4_header>) {
             this->count.ipv4_c.push_back(idx);
@@ -78,7 +80,6 @@ void MainWindow::showRow(size_t i, const pack& x) {
     });
 }
 
-// 可以重构为pkt.handle，但是懒。。
 void MainWindow::showDetails(int i) {
     //     assert (i < this->packets.size())
     auto& pk = this->packets[i];
@@ -92,115 +93,111 @@ void MainWindow::showDetails(int i) {
     model->setHorizontalHeaderLabels({QString::asprintf("第%d个包", i + 1)});
     ui->treeView->setModel(model);
 
-    {
-        auto& hd = pkt.at<eth_header>();
-        QStandardItem* eth_d = new QStandardItem("以太头");
-        model->appendRow(eth_d);
-        eth_d->appendRow(new QStandardItem("类型: " + hd.type_str()));
-        eth_d->appendRow(new QStandardItem("源mac: " + hd.srcmac()));
-        eth_d->appendRow(new QStandardItem("目的mac: " + hd.dstmac()));
-    }
-
-    if (auto p = pkt.get<arp_packet>()) {
-        QStandardItem* arp_d = new QStandardItem("ARP包");
-        model->appendRow(arp_d);
-        arp_d->appendRow(new QStandardItem("类型: " + p->op_str()));
-        arp_d->appendRow(new QStandardItem("源ip: " + p->srcip()));
-        arp_d->appendRow(new QStandardItem("源mac: " + p->srcmac()));
-        arp_d->appendRow(new QStandardItem("目的ip: " + p->dstip()));
-        arp_d->appendRow(new QStandardItem("目的mac: " + p->dstmac()));
-    } else if (auto p = pkt.get<ipv4_header>()) {
-        QStandardItem* ip_d = new QStandardItem("IP包头");
-        model->appendRow(ip_d);
-        ip_d->appendRow(new QStandardItem("版本: 4"));
-        ip_d->appendRow(new QStandardItem("源ip: " + p->srcip()));
-        ip_d->appendRow(new QStandardItem("目的ip: " + p->dstip()));
-        ip_d->appendRow(new QStandardItem("长度: " + p->len_str()));
-        ip_d->appendRow(new QStandardItem("tos: " + p->ds_str()));
-        ip_d->appendRow(new QStandardItem("ttl: " + p->ttl_str()));
-        ip_d->appendRow(new QStandardItem("id: " + p->id_str()));
-        {
-            QStandardItem* flag = new QStandardItem("flag");
-            ip_d->appendRow(flag);
-            flag->appendRow(new QStandardItem("DF: " + p->df_str()));
-            flag->appendRow(new QStandardItem("MF: " + p->mf_str()));
-            ip_d->appendRow(new QStandardItem("offset: " + p->offset_str()));
+    pkt.traverse([model]<typename T>(const T& p) {
+        if constexpr (std::is_same_v<T, eth_header>) {
+            QStandardItem* eth_d = new QStandardItem("以太头");
+            model->appendRow(eth_d);
+            eth_d->appendRow(new QStandardItem("类型: " + p.type_str()));
+            eth_d->appendRow(new QStandardItem("源mac: " + p.srcmac()));
+            eth_d->appendRow(new QStandardItem("目的mac: " + p.dstmac()));
+        } else if constexpr (std::is_same_v<T, arp_packet>) {
+            QStandardItem* arp_d = new QStandardItem("ARP包");
+            model->appendRow(arp_d);
+            arp_d->appendRow(new QStandardItem("类型: " + p.op_str()));
+            arp_d->appendRow(new QStandardItem("源ip: " + p.srcip()));
+            arp_d->appendRow(new QStandardItem("源mac: " + p.srcmac()));
+            arp_d->appendRow(new QStandardItem("目的ip: " + p.dstip()));
+            arp_d->appendRow(new QStandardItem("目的mac: " + p.dstmac()));
+        } else if constexpr (std::is_same_v<T, ipv4_header>) {
+            QStandardItem* ip_d = new QStandardItem("IP包头");
+            model->appendRow(ip_d);
+            ip_d->appendRow(new QStandardItem("版本: 4"));
+            ip_d->appendRow(new QStandardItem("源ip: " + p.srcip()));
+            ip_d->appendRow(new QStandardItem("目的ip: " + p.dstip()));
+            ip_d->appendRow(new QStandardItem("长度: " + p.len_str()));
+            ip_d->appendRow(new QStandardItem("tos: " + p.ds_str()));
+            ip_d->appendRow(new QStandardItem("ttl: " + p.ttl_str()));
+            ip_d->appendRow(new QStandardItem("id: " + p.id_str()));
+            {
+                QStandardItem* flag = new QStandardItem("flag");
+                ip_d->appendRow(flag);
+                flag->appendRow(new QStandardItem("DF: " + p.df_str()));
+                flag->appendRow(new QStandardItem("MF: " + p.mf_str()));
+                ip_d->appendRow(new QStandardItem("offset: " + p.offset_str()));
+            }
+            ip_d->appendRow(new QStandardItem("校验和: " + p.checksum_str()));
+        } else if constexpr (std::is_same_v<T, ipv6_header>) {
+            QStandardItem* ip_d = new QStandardItem("IP包头");
+            model->appendRow(ip_d);
+            ip_d->appendRow(new QStandardItem("版本: 6"));
+            ip_d->appendRow(new QStandardItem("源ip: " + p.srcip()));
+            ip_d->appendRow(new QStandardItem("目的ip: " + p.dstip()));
+            ip_d->appendRow(new QStandardItem("净荷长度: " + p.payload_len_str()));
+            ip_d->appendRow(new QStandardItem("流量类别: " + p.traffic_class_str()));
+            ip_d->appendRow(new QStandardItem("流标签: " + p.flow_label_str()));
+            ip_d->appendRow(new QStandardItem("下一报头: " + p.next_header_str()));
+            ip_d->appendRow(new QStandardItem("跳数限制: " + p.hop_limit_str()));
+        } else if constexpr (std::is_same_v<T, icmp_packet>) {
+            QStandardItem* icmp_d = new QStandardItem("icmp");
+            model->appendRow(icmp_d);
+            auto [type_str, code_str] = p.type_code_str();
+            icmp_d->appendRow(new QStandardItem("type: " + type_str));
+            icmp_d->appendRow(new QStandardItem("code: " + code_str));
+            icmp_d->appendRow(new QStandardItem("校验和: " + p.checksum_str()));
+        } else if constexpr (std::is_same_v<T, tcp_header>) {
+            QStandardItem* tcp_d = new QStandardItem("tcp");
+            model->appendRow(tcp_d);
+            tcp_d->appendRow(new QStandardItem("首部长度: " + p.header_len_str()));
+            tcp_d->appendRow(new QStandardItem("源端口: " + p.src_str()));
+            tcp_d->appendRow(new QStandardItem("目的端口: " + p.dst_str()));
+            tcp_d->appendRow(new QStandardItem("序列号: " + p.seq_str()));
+            tcp_d->appendRow(new QStandardItem("确认号: " + p.ack_str()));
+            {
+                QStandardItem* flags = new QStandardItem("flags");
+                tcp_d->appendRow(flags);
+                flags->appendRow(new QStandardItem("fin: " + p.flags.fin_str()));
+                flags->appendRow(new QStandardItem("syn: " + p.flags.syn_str()));
+                flags->appendRow(new QStandardItem("rst: " + p.flags.rst_str()));
+                flags->appendRow(new QStandardItem("psh: " + p.flags.psh_str()));
+                flags->appendRow(new QStandardItem("ack: " + p.flags.ack_str()));
+                flags->appendRow(new QStandardItem("urg: " + p.flags.urg_str()));
+                flags->appendRow(new QStandardItem("ece: " + p.flags.ece_str()));
+                flags->appendRow(new QStandardItem("cwr: " + p.flags.cwr_str()));
+            }
+            tcp_d->appendRow(new QStandardItem("窗口尺寸: " + p.window_size_str()));
+            tcp_d->appendRow(new QStandardItem("校验和: " + p.checksum_str()));
+            tcp_d->appendRow(new QStandardItem("紧急指针: " + p.urgent_ptr_str()));
+        } else if constexpr (std::is_same_v<T, udp_header>) {
+            QStandardItem* udp_d = new QStandardItem("udp");
+            model->appendRow(udp_d);
+            udp_d->appendRow(new QStandardItem("源端口: " + p.src_str()));
+            udp_d->appendRow(new QStandardItem("目的端口: " + p.dst_str()));
+            udp_d->appendRow(new QStandardItem("长度: " + p.len_str()));
+            udp_d->appendRow(new QStandardItem("校验和: " + p.checksum_str()));
+        } else if constexpr (std::is_same_v<T, dns_packet>) {
+            QStandardItem* dns_d = new QStandardItem("dns");
+            model->appendRow(dns_d);
+            dns_d->appendRow(new QStandardItem("事物id: " + p.id_str()));
+            dns_d->appendRow(new QStandardItem("问题计数: " + p.questions_str()));
+            dns_d->appendRow(new QStandardItem("回答资源记录数: " + p.answer_rrs_str()));
+            dns_d->appendRow(new QStandardItem("权威名称服务器计数: " + p.authority_rrs_str()));
+            dns_d->appendRow(new QStandardItem("附加资源记录数: " + p.additional_rrs_str()));
+            {
+                QStandardItem* flags = new QStandardItem("flags");
+                dns_d->appendRow(flags);
+                flags->appendRow(new QStandardItem("QR: " + p.flags.qr_str()));
+                flags->appendRow(new QStandardItem("opcode: " + p.flags.opcode_str()));
+                flags->appendRow(new QStandardItem("AA: " + p.flags.aa_str()));
+                flags->appendRow(new QStandardItem("TC: " + p.flags.tc_str()));
+                flags->appendRow(new QStandardItem("RD: " + p.flags.rd_str()));
+                flags->appendRow(new QStandardItem("RA: " + p.flags.ra_str()));
+                flags->appendRow(new QStandardItem("rcode: " + p.flags.rcode_str()));
+            }
+        } else {
+            static_assert(std::is_same_v<T, blob>);
+            // todo blob?
         }
-        ip_d->appendRow(new QStandardItem("校验和: " + p->checksum_str()));
-    } else if (auto p = pkt.get<ipv6_header>()) {
-        QStandardItem* ip_d = new QStandardItem("IP包头");
-        model->appendRow(ip_d);
-        ip_d->appendRow(new QStandardItem("版本: 6"));
-        ip_d->appendRow(new QStandardItem("源ip: " + p->srcip()));
-        ip_d->appendRow(new QStandardItem("目的ip: " + p->dstip()));
-        ip_d->appendRow(new QStandardItem("净荷长度: " + p->payload_len_str()));
-        ip_d->appendRow(new QStandardItem("流量类别: " + p->traffic_class_str()));
-        ip_d->appendRow(new QStandardItem("流标签: " + p->flow_label_str()));
-        ip_d->appendRow(new QStandardItem("下一报头: " + p->next_header_str()));
-        ip_d->appendRow(new QStandardItem("跳数限制: " + p->hop_limit_str()));
-    }
-
-    if (auto p = pkt.get<icmp_packet>()) {
-        QStandardItem* icmp_d = new QStandardItem("icmp");
-        model->appendRow(icmp_d);
-        auto [type_str, code_str] = p->type_code_str();
-        icmp_d->appendRow(new QStandardItem("type: " + type_str));
-        icmp_d->appendRow(new QStandardItem("code: " + code_str));
-        icmp_d->appendRow(new QStandardItem("校验和: " + p->checksum_str()));
-    } else if (auto p = pkt.get<tcp_header>()) {
-        QStandardItem* tcp_d = new QStandardItem("tcp");
-        model->appendRow(tcp_d);
-        tcp_d->appendRow(new QStandardItem("首部长度: " + p->header_len_str()));
-        tcp_d->appendRow(new QStandardItem("源端口: " + p->src_str()));
-        tcp_d->appendRow(new QStandardItem("目的端口: " + p->dst_str()));
-        tcp_d->appendRow(new QStandardItem("序列号: " + p->seq_str()));
-        tcp_d->appendRow(new QStandardItem("确认号: " + p->ack_str()));
-        {
-            QStandardItem* flags = new QStandardItem("flags");
-            tcp_d->appendRow(flags);
-            flags->appendRow(new QStandardItem("fin: " + p->flags.fin_str()));
-            flags->appendRow(new QStandardItem("syn: " + p->flags.syn_str()));
-            flags->appendRow(new QStandardItem("rst: " + p->flags.rst_str()));
-            flags->appendRow(new QStandardItem("psh: " + p->flags.psh_str()));
-            flags->appendRow(new QStandardItem("ack: " + p->flags.ack_str()));
-            flags->appendRow(new QStandardItem("urg: " + p->flags.urg_str()));
-            flags->appendRow(new QStandardItem("ece: " + p->flags.ece_str()));
-            flags->appendRow(new QStandardItem("cwr: " + p->flags.cwr_str()));
-        }
-        tcp_d->appendRow(new QStandardItem("窗口尺寸: " + p->window_size_str()));
-        tcp_d->appendRow(new QStandardItem("校验和: " + p->checksum_str()));
-        tcp_d->appendRow(new QStandardItem("紧急指针: " + p->urgent_ptr_str()));
-    } else if (auto p = pkt.get<udp_header>()) {
-        QStandardItem* udp_d = new QStandardItem("udp");
-        model->appendRow(udp_d);
-        udp_d->appendRow(new QStandardItem("源端口: " + p->src_str()));
-        udp_d->appendRow(new QStandardItem("目的端口: " + p->dst_str()));
-        udp_d->appendRow(new QStandardItem("长度: " + p->len_str()));
-        udp_d->appendRow(new QStandardItem("校验和: " + p->checksum_str()));
-    }
-
-    if (auto p = pkt.get<dns_packet>()) {
-        QStandardItem* dns_d = new QStandardItem("dns");
-        model->appendRow(dns_d);
-        dns_d->appendRow(new QStandardItem("事物id: " + p->id_str()));
-        dns_d->appendRow(new QStandardItem("问题计数: " + p->questions_str()));
-        dns_d->appendRow(new QStandardItem("回答资源记录数: " + p->answer_rrs_str()));
-        dns_d->appendRow(new QStandardItem("权威名称服务器计数: " + p->authority_rrs_str()));
-        dns_d->appendRow(new QStandardItem("附加资源记录数: " + p->additional_rrs_str()));
-        {
-            QStandardItem* flags = new QStandardItem("flags");
-            dns_d->appendRow(flags);
-            flags->appendRow(new QStandardItem("QR: " + p->flags.qr_str()));
-            flags->appendRow(new QStandardItem("opcode: " + p->flags.opcode_str()));
-            flags->appendRow(new QStandardItem("AA: " + p->flags.aa_str()));
-            flags->appendRow(new QStandardItem("TC: " + p->flags.tc_str()));
-            flags->appendRow(new QStandardItem("RD: " + p->flags.rd_str()));
-            flags->appendRow(new QStandardItem("RA: " + p->flags.ra_str()));
-            flags->appendRow(new QStandardItem("rcode: " + p->flags.rcode_str()));
-        }
-    }
-
-    // todo blob?
+    });
 }
 
 // 太长了。。化简todo
