@@ -31,14 +31,17 @@ inline void pcap_assert(int e) {
 }
 
 class device {
+    static constexpr size_t DEVICE_THREAD_PLUS = 2;
+
 private:
     pcap_t* src;
     pcap_dumper_t* file;
     u_int netmask;
     bpf_program fcode;
     std::atomic_bool stop_flag = false;
-    std::thread thread;
+    std::vector<std::thread> threads;
     SafeQueue<pack> queue;
+    std::mutex mtx;
 
 public:
     device(const char* name, u_int netmask);

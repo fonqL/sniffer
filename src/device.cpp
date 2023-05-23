@@ -20,7 +20,7 @@ using namespace std::chrono_literals;
     用create，设置完参数再activate
 */
 device::device(const char* name, u_int netmask)
-    : netmask(netmask) {
+    : netmask(netmask), threads(DEVICE_THREAD_PLUS + 1) {
     char errbuf[PCAP_ERRBUF_SIZE];
 
     pcap_assert(src = pcap_create(name, errbuf), errbuf);
@@ -52,7 +52,8 @@ device::device(device&& x) noexcept
       file(x.file),
       netmask(x.netmask),
       fcode(x.fcode),
-      thread(std::move(x.thread)) {
+      threads(std::move(x.threads)) {
+    // mutx: default construct
     stop_flag.store(x.stop_flag.load(std::memory_order_relaxed), std::memory_order_relaxed);
     x.src = nullptr, x.file = nullptr;
 }
@@ -60,14 +61,14 @@ device::device(device&& x) noexcept
 device::~device() {
     if (src == nullptr)
         return;
-    if (thread.joinable())
-        stop();
+    stop();
     pcap_dump_close(file);
     pcap_close(src);
 }
 
 std::tuple<const pcap_pkthdr*, const u_char*>
 device::get_packet() {
+    std::scoped_lock<std::mutex> lck(mtx);
     while (!stop_flag.load(std::memory_order_relaxed)) {
         pcap_pkthdr* header;
         const u_char* data;
@@ -82,10 +83,11 @@ device::get_packet() {
 }
 
 void device::stop() {
-    if (!thread.joinable())
-        return;
     stop_flag.store(true, std::memory_order_relaxed);
-    thread.join();
+    for (auto& t: threads) {
+        if (t.joinable())
+            t.join();
+    }
 }
 
 void device::set_filter(const std::string& filter) {
@@ -105,28 +107,32 @@ std::vector<pack> device::get_all() {
 }
 
 void device::start_capture() {
-    thread = std::thread([this]() {
-        while (!stop_flag.load(std::memory_order_relaxed)) {
-            auto [header, data] = get_packet();
-            if (header == nullptr || data == nullptr) break;
-            if (header->caplen != header->len || header->caplen == 0) continue;
+    // 增加一点鲁棒性。。一开始好像设计为不许重新start_capture...
+    stop_flag.store(false, std::memory_order_relaxed);
+    for (auto& t: threads) {
+        t = std::thread([this]() {
+            while (!stop_flag.load(std::memory_order_relaxed)) {
+                auto [header, data] = get_packet();
+                if (header == nullptr || data == nullptr) break;
+                if (header->caplen != header->len || header->caplen == 0) continue;
 
-            packet pkt = packet::parse_packet(data, data + header->len);
-            [[unlikely]] if (pkt.empty()) {
-                continue;
+                packet pkt = packet::parse_packet(data, data + header->len);
+                [[unlikely]] if (pkt.empty()) {
+                    continue;
+                }
+
+                pack res = {
+                    QDateTime::fromSecsSinceEpoch(header->ts.tv_sec)
+                        + std::chrono::milliseconds{header->ts.tv_usec / 1000},
+                    {data, data + header->len},
+                    std::move(pkt)
+                };
+                while (!stop_flag.load(std::memory_order_relaxed)
+                       && !queue.push(std::move(res), 1s))
+                    ;
             }
-
-            pack res = {
-                QDateTime::fromSecsSinceEpoch(header->ts.tv_sec)
-                    + std::chrono::milliseconds{header->ts.tv_usec / 1000},
-                {data, data + header->len},
-                std::move(pkt)
-            };
-            while (!stop_flag.load(std::memory_order_relaxed)
-                   && !queue.push(std::move(res), 1s))
-                ;
-        }
-    });
+        });
+    }
 }
 
 device_list::device_list()

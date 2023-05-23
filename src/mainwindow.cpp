@@ -88,11 +88,15 @@ void MainWindow::showDetails(int i) {
     ui->data->setText(pk.raw_str());
 
     QStandardItemModel* model = new QStandardItemModel(ui->treeView);
+    ui->treeView->setModel(model);
     this->t_model = model;
     this->hadDetails = true;
     model->setHorizontalHeaderLabels({QString::asprintf("第%d个包", i + 1)});
-    ui->treeView->setModel(model);
 
+    {
+        QStandardItem* info = new QStandardItem("时间: " + pk.time_str() + " 总长度: " + pk.raw_len() + " 字节");
+        model->appendRow(info);
+    }
     pkt.traverse([model]<typename T>(const T& p) {
         if constexpr (std::is_same_v<T, eth_header>) {
             QStandardItem* eth_d = new QStandardItem("以太头");
