@@ -227,6 +227,9 @@ private:
     static void parse_unknown(const uint8_t* begin, const uint8_t* end, packet& pkt);
 
 public:
+    void handle(auto f) const;
+
+public:
     friend QDataStream& operator<<(QDataStream& ds, const packet& pkt);
     friend QDataStream& operator>>(QDataStream& ds, packet& pkt);
 
@@ -239,34 +242,6 @@ private:
     // 拓展，实现高级协议(如http时)还是需要靠vector any
     // std::vector<std::any> advanced_proto;
 };
-
-//
-
-QDataStream& operator<<(QDataStream& ds, const packet& pkt);
-QDataStream& operator>>(QDataStream& ds, packet& pkt);
-
-//
-
-template<>
-void packet::parse_network<ipv6_header>(const uint8_t* begin, const uint8_t* end, packet& pkt);
-
-template<>
-void packet::parse_network<ipv4_header>(const uint8_t* begin, const uint8_t* end, packet& pkt);
-
-template<>
-void packet::parse_network<arp_packet>(const uint8_t* begin, const uint8_t* end, packet& pkt);
-
-template<>
-void packet::parse_transport<tcp_header>(const uint8_t* begin, const uint8_t* end, packet& pkt);
-
-template<>
-void packet::parse_transport<udp_header>(const uint8_t* begin, const uint8_t* end, packet& pkt);
-
-template<>
-void packet::parse_transport<icmp_packet>(const uint8_t* begin, const uint8_t* end, packet& pkt);
-
-template<>
-void packet::parse_application<dns_packet>(const uint8_t* begin, const uint8_t* end, packet& pkt);
 
 //
 
@@ -293,5 +268,144 @@ struct pack {
     }
 };
 
+//
+
+QDataStream& operator<<(QDataStream& ds, const packet& pkt);
+QDataStream& operator>>(QDataStream& ds, packet& pkt);
+
 QDataStream& operator<<(QDataStream& ds, const pack& pkt);
 QDataStream& operator>>(QDataStream& ds, pack& pkt);
+
+//
+
+template<>
+void packet::parse_network<ipv6_header>(const uint8_t* begin, const uint8_t* end, packet& pkt);
+
+template<>
+void packet::parse_network<ipv4_header>(const uint8_t* begin, const uint8_t* end, packet& pkt);
+
+template<>
+void packet::parse_network<arp_packet>(const uint8_t* begin, const uint8_t* end, packet& pkt);
+
+template<>
+void packet::parse_transport<tcp_header>(const uint8_t* begin, const uint8_t* end, packet& pkt);
+
+template<>
+void packet::parse_transport<udp_header>(const uint8_t* begin, const uint8_t* end, packet& pkt);
+
+template<>
+void packet::parse_transport<icmp_packet>(const uint8_t* begin, const uint8_t* end, packet& pkt);
+
+template<>
+void packet::parse_application<dns_packet>(const uint8_t* begin, const uint8_t* end, packet& pkt);
+
+//
+namespace packet_impl {
+
+//
+void handle(const blob& b, size_t cnt, auto f) {
+    if (cnt == 0)
+        return;
+    f(b);
+}
+
+void handle(const dns_packet& dns, size_t cnt, auto f) {
+    if (cnt == 0)
+        return;
+    f(dns);
+}
+
+void handle(const tcp_header& tcp, size_t cnt, auto f) {
+    if (cnt == 0)
+        return;
+    cnt -= 1;
+    f(tcp);
+    auto next = reinterpret_cast<const uint8_t*>(&tcp) + tcp.header_len * 4;
+    if (tcp.is_dns()) {
+        handle(*reinterpret_cast<const dns_packet*>(next), cnt, std::move(f));
+    } else {
+        handle(*reinterpret_cast<const blob*>(next), cnt, std::move(f));
+    }
+}
+
+void handle(const udp_header& udp, size_t cnt, auto f) {
+    if (cnt == 0)
+        return;
+    cnt -= 1;
+    f(udp);
+    auto next = &udp + 1;
+    if (udp.is_dns()) {
+        handle(*reinterpret_cast<const dns_packet*>(next), cnt, std::move(f));
+    } else {
+        handle(*reinterpret_cast<const blob*>(next), cnt, std::move(f));
+    }
+}
+
+void handle(const icmp_packet& icmp, size_t cnt, auto f) {
+    if (cnt == 0)
+        return;
+    f(icmp);
+}
+
+void handle(const ipv6_header& ip6, size_t cnt, auto f) {
+    if (cnt == 0)
+        return;
+    cnt -= 1;
+    f(ip6);
+    auto next = &ip6 + 1;
+    switch (ip6.next_header) {
+    case ipv6_header::TCP:
+        return handle(*reinterpret_cast<const tcp_header*>(next), cnt, std::move(f));
+    case ipv6_header::UDP:
+        return handle(*reinterpret_cast<const udp_header*>(next), cnt, std::move(f));
+    default:
+        return handle(*reinterpret_cast<const blob*>(next), cnt, std::move(f));
+    }
+}
+
+void handle(const ipv4_header& ip4, size_t cnt, auto f) {
+    if (cnt == 0)
+        return;
+    cnt -= 1;
+    f(ip4);
+    auto next = reinterpret_cast<const uint8_t*>(&ip4) + ip4.header_len * 4;
+    switch (ip4.proto) {
+    case ipv4_header_base::ICMP:
+        return handle(*reinterpret_cast<const icmp_packet*>(next), cnt, std::move(f));
+    case ipv4_header_base::TCP:
+        return handle(*reinterpret_cast<const tcp_header*>(next), cnt, std::move(f));
+    case ipv4_header_base::UDP:
+        return handle(*reinterpret_cast<const udp_header*>(next), cnt, std::move(f));
+    default:
+        return handle(*reinterpret_cast<const blob*>(next), cnt, std::move(f));
+    }
+}
+
+void handle(const arp_packet& arp, size_t cnt, auto f) {
+    if (cnt == 0)
+        return;
+    cnt -= 1;
+    f(arp);
+}
+
+void handle(const eth_header& eth, size_t cnt, auto f) {
+    if (cnt == 0)
+        return;
+    f(eth);
+    auto next = &eth + 1;
+    switch (eth.type) {
+    case eth_header::IPv4:
+        return handle(*reinterpret_cast<const ipv4_header*>(next), cnt - 1, std::move(f));
+    case eth_header::ARP:
+        return handle(*reinterpret_cast<const arp_packet*>(next), cnt - 1, std::move(f));
+    case eth_header::IPv6:
+        return handle(*reinterpret_cast<const ipv6_header*>(next), cnt - 1, std::move(f));
+    default:
+        return handle(*reinterpret_cast<const blob*>(next), cnt - 1, std::move(f));
+    }
+}
+
+} // namespace packet_impl
+void packet::handle(auto f) const {
+    ::packet_impl::handle(*reinterpret_cast<const eth_header*>(mid), size(), std::move(f));
+}

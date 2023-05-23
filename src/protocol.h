@@ -339,7 +339,7 @@ struct tcp_header_base {
     uint16_t checksum;
     uint16_t urgent_ptr;
 
-    uint16_t type() const { return std::min(src, dst); }
+    uint16_t is_dns() const { return std::min(src, dst) == 53; }
 
     STR_DEC(src)
     STR_DEC(dst)
@@ -363,7 +363,7 @@ struct udp_header {
     uint16_t len;
     uint16_t checksum;
 
-    uint16_t type() const { return std::min(src, dst); }
+    uint16_t is_dns() const { return std::min(src, dst) == 53; }
 
     STR_DEC(src)
     STR_DEC(dst)
@@ -385,6 +385,65 @@ struct dns_packet_base {
         uint16_t ra : 1;
         uint16_t z : 3;
         uint16_t rcode : 4;
+
+        QString qr_str() const {
+            if (qr == 0) {
+                return "查询请求 (0)";
+            } else {
+                return "响应 (1)";
+            }
+        }
+        QString opcode_str() const {
+            if (opcode == 0) {
+                return "标准查询 (0)";
+            } else if (opcode == 1) {
+                return "反向查询 (1)";
+            } else if (opcode == 2) {
+                return "服务器状态请求 (2)";
+            } else {
+                return QString::asprintf("未知 (%hd)", opcode);
+            }
+        }
+        QString aa_str() const {
+            if (aa == 0) {
+                return "非权威服务器 (0)";
+            } else {
+                return "权威服务器 (1)";
+            }
+        }
+        QString tc_str() const {
+            if (tc == 0) {
+                return "未截断 (0)";
+            } else {
+                return "已截断(1)";
+            }
+        }
+        STR_BOOL(rd)
+        QString ra_str() const {
+            if (ra == 0) {
+                return "不支持递归查询 (0)";
+            } else {
+                return "支持递归查询 (1)";
+            }
+        }
+        QString rcode_str() const {
+            if (rcode == 0) {
+                return "无错误 (0)";
+            } else if (rcode == 1) {
+                return "格式错误 (1)";
+            } else if (rcode == 2) {
+                return "服务器失败 (2)";
+            } else if (rcode == 3) {
+                return "名字错误 (3)";
+            } else if (rcode == 4) {
+                return "类型不支持 (4)";
+            } else if (rcode == 5) {
+                return "拒绝应答 (5)";
+            } else {
+                return QString::asprintf("未知 (%hd)", rcode);
+            }
+        }
+
     } flags;
     uint16_t questions;
     uint16_t answer_rrs;

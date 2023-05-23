@@ -49,11 +49,9 @@ void packet::parse_transport<tcp_header>(const uint8_t* begin, const uint8_t* en
     std::copy(begin + sizeof(tcp_header_base), begin + tcp.header_len * 4, tcp.op);
 
     begin += tcp.header_len * 4;
-    auto tcp_type = tcp.type();
-    switch (tcp_type) {
-    case 53:
+    if (tcp.is_dns()) {
         return parse_application<dns_packet>(begin, end, pkt);
-    default:
+    } else {
         return parse_unknown(begin, end, pkt);
     }
 }
@@ -70,11 +68,9 @@ void packet::parse_transport<udp_header>(const uint8_t* begin, const uint8_t* en
     udp.checksum = ntohs(udp.checksum);
 
     begin += sizeof(udp);
-    auto udp_type = udp.type();
-    switch (udp_type) {
-    case 53:
+    if (udp.is_dns()) {
         return parse_application<dns_packet>(begin, end, pkt);
-    default:
+    } else {
         return parse_unknown(begin, end, pkt);
     }
 }

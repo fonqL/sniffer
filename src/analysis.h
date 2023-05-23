@@ -1,6 +1,5 @@
 #pragma once
 
-// #include "ProxyIntVector.h"
 #include <QDatetime>
 
 //计数类
@@ -10,14 +9,31 @@ struct Count {
     std::vector<size_t> arp_c;
     // 统计ip层其他协议
     std::vector<size_t> other_c;
+
     std::vector<size_t> icmp_c;
     std::vector<size_t> tcp_c;
     std::vector<size_t> udp_c;
     // 统计tcp层其他协议
     std::vector<size_t> other_header_c;
+
     std::vector<size_t> dns_c;
     // 统计应用层其他协议
     std::vector<size_t> other_app_c;
+
+    void clear() {
+        ipv4_c.clear();
+        ipv6_c.clear();
+        arp_c.clear();
+        other_c.clear();
+
+        icmp_c.clear();
+        tcp_c.clear();
+        udp_c.clear();
+        other_header_c.clear();
+
+        dns_c.clear();
+        other_app_c.clear();
+    }
 };
 
 struct Count_time {

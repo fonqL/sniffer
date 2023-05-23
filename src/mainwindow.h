@@ -20,6 +20,7 @@ public:
 
 private:
     Ui::MainWindow* ui;
+    // 挂到qt对象树上，不用析构
     class QLabel* textEdit;
     uint device_choose;
     bool stop;
@@ -31,7 +32,9 @@ private:
     device_list devices;
     std::unique_ptr<device> dev;
     ProxyVector packets;
+    // 挂到qt对象树上，不用析构
     class CustomItemModel* model;
+    // 挂到qt对象树上，不用析构
     class QStandardItemModel* t_model;
     Count count;
     std::vector<Count_time> count_t;
