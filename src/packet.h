@@ -34,11 +34,29 @@ private:
 public:
     packet() = default;
     packet(const packet&) = delete;
+    // packet(const packet& x) {
+    //     size_t len = x.r_end - x.l_end;
+    //     impl.allocate(len);
+    //     memcpy(impl.begin, x.impl.begin, len);
+    //     l_end = impl.begin;
+    //     r_end = impl.end;
+    //     mid = l_end + (x.mid - x.l_end);
+    // }
     packet(packet&& x) noexcept
         : impl(x.impl), mid(x.mid), l_end(x.l_end), r_end(x.r_end) {
         x.impl.begin = nullptr;
     }
     packet& operator=(const packet&) = delete;
+    // packet& operator=(const packet& x) {
+    //     this->~packet();
+    //     size_t len = x.r_end - x.l_end;
+    //     impl.allocate(len);
+    //     memcpy(impl.begin, x.impl.begin, len);
+    //     l_end = impl.begin;
+    //     r_end = impl.end;
+    //     mid = l_end + (x.mid - x.l_end);
+    //     return *this;
+    // }
     packet& operator=(packet&& x) noexcept {
         this->~packet();
         impl = x.impl;

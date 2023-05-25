@@ -13,8 +13,8 @@ void MainWindow::showRow(size_t i) {
     showRow(i, this->packets[i]);
 }
 
-// 字符串化，添加新记录，要更新统计量
-void MainWindow::addRow(pack x) {
+// 字符串化，界面添加新记录，要更新统计量
+void MainWindow::addRow(const pack& x) {
     size_t idx = this->packets.size();
     auto& packet = x.parsed;
 
@@ -48,7 +48,6 @@ void MainWindow::addRow(pack x) {
     });
 
     this->showRow(idx, x);
-    this->packets.push_back(std::move(x));
 }
 
 // 界面新增记录展示的核心函数
@@ -205,8 +204,12 @@ void MainWindow::showDetails(int i) {
 }
 
 // 太长了。。化简todo
+// 界面初始值交给qt desinger
 MainWindow::MainWindow(QWidget* parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow()), textEdit(new QLabel(this)), time_record(QDateTime::fromSecsSinceEpoch(0)) {
+    : QMainWindow(parent),
+      ui(new Ui::MainWindow()),
+      textEdit(new QLabel(this)),
+      time_record(QDateTime::fromSecsSinceEpoch(0)) {
     ui->setupUi(this);
 
     this->statusBar()->addWidget(textEdit);
@@ -241,7 +244,6 @@ MainWindow::MainWindow(QWidget* parent)
     this->show_filt = "";
     this->catch_f = false;
     this->show_f = false;
-    ui->spinBox->setRange(1, 1);
 
     connect(ui->radioButton, &QRadioButton::toggled, this, [this](bool checked) {
         if (checked)
@@ -372,7 +374,7 @@ MainWindow::MainWindow(QWidget* parent)
     //             this->dev->start_capture();
     //             this->stop = false;
     //             ui->radioButton->setChecked(true);
-    //             timer->start(500);
+    //             timer->start(0);
     //             this->hadClear = false;
     //         } catch (std::exception& e) {
     //             QMessageBox::critical(this, "打开失败", QString(e.what()));
@@ -399,21 +401,24 @@ MainWindow::MainWindow(QWidget* parent)
 
     //跳转
     connect(ui->pushButton_10, &QPushButton::clicked, this, [this]() {
-        // todo 想重构，为什么要停下才能跳转，不能在后台抓包吗。。
-        // todo 为什么要非clear态才能跳？
-        if (!this->stop || this->hadClear)
-            return;
+        // if (!this->stop || this->hadClear)
+        //     return;
         this->model->clear();
         // note: custom model不用重新setHorizontalHeaderLabels
-        for (int i = (ui->spinBox->value() - 1) * this->MAXSHOW; i < ui->spinBox->value() * this->MAXSHOW; i++) {
-            if (i < this->packets.size()) {
-                if (this->show_f) {
-                    if (i < show_result.size())
-                        this->showRow(show_result[i]);
-                } else {
-                    this->showRow(i);
-                }
-            }
+        // for (int i = (ui->spinBox->value() - 1) * this->MAXSHOW; i < ui->spinBox->value() * this->MAXSHOW; i++) {
+        //     if (i < this->packets.size()) {
+        //         if (this->show_f) {
+        //             if (i < show_result.size())
+        //                 this->showRow(show_result[i]);
+        //         } else {
+        //             this->showRow(i);
+        //         }
+        //     }
+        // }
+        size_t begin = (ui->spinBox->value() - 1) * this->MAXSHOW;
+        size_t end = std::min(ui->spinBox->value() * this->MAXSHOW, packets.size());
+        for (size_t i = begin; i < end; ++i) {
+            this->showRow(i);
         }
     });
 
@@ -426,36 +431,27 @@ MainWindow::MainWindow(QWidget* parent)
         }
     });
 
-    //     //清空
-    //     connect(ui->pushButton_5, &QPushButton::clicked, this, [this]() {
-    //         if (this->stop && !this->hadClear) {
-    //             this->time_record = QDateTime::fromSecsSinceEpoch(0);
-    //             this->packets.clear();
-    //             this->model->clear();
-    //             //自定义了
-    //             // model->setHorizontalHeaderLabels({
-    //             //     "序号",
-    //             //     "时间",
-    //             //     "协议",
-    //             //     "源ip",
-    //             //     "目的ip",
-    //             //     "长度",
-    //             // });
+    //清空
+    connect(ui->pushButton_5, &QPushButton::clicked, this, [this]() {
+        if (this->stop && !this->hadClear) {
+            this->time_record = QDateTime::fromSecsSinceEpoch(0);
+            this->packets.clear();
+            this->model->clear();
+            // note: custom model不用重新setHorizontalHeaderLabels
 
-    // todo 这肯定要写成员函数。。
-    //             this->count.clear();
+            this->count.clear();
 
-    //             this->count_t.clear();
+            this->count_t.clear();
 
-    //             this->textEdit->clear();
-    //             ui->data->clear();
-    //             if (this->hadDetails) {
-    //                 this->t_model->clear();
-    //             }
-    //             this->hadClear = true;
-    //             this->hadDetails = false;
-    //         }
-    //     });
+            this->textEdit->clear();
+            ui->data->clear();
+            if (this->hadDetails) {
+                this->t_model->clear();
+            }
+            this->hadClear = true;
+            this->hadDetails = false;
+        }
+    });
 }
 
 // 定期抽样统计数据
@@ -487,10 +483,37 @@ void MainWindow::timerUpdate() {
             time_record = t;
         }
 
-        addRow(std::move(pkt));
+        int max = int((this->packets.size() + 1) / this->MAXSHOW);
+        max += (this->packets.size() + 1) % this->MAXSHOW ? 1 : 0;
+
+        if (ui->radioButton_2->isChecked()) { //trace
+            if (ui->spinBox->value() == ui->spinBox->maximum()) {
+                // todo 整理重复代码
+                ui->spinBox->setMaximum(max);
+                ui->label_2->setText(QString::asprintf("共%d页", max));
+
+                ui->spinBox->setValue(max);
+
+                addRow(pkt);
+            } else {
+                ui->spinBox->setMaximum(max); // note: 因为if条件用到spinbox.max，所以绝对不要提出if块
+                ui->label_2->setText(QString::asprintf("共%d页", max));
+            }
+        } else { //not trace
+            ui->spinBox->setMaximum(max);
+            ui->label_2->setText(QString::asprintf("共%d页", max));
+            if (ui->spinBox->value() == ui->spinBox->maximum()) {
+                addRow(pkt);
+            }
+        }
+
+        this->packets.push_back(std::move(pkt));
     }
-    // 批量处理后一次性滑动到底部 todo
-    ui->tableView->scrollToBottom();
+
+    if (ui->radioButton_2->isChecked()) { //trace
+        if (ui->spinBox->value() == ui->spinBox->maximum())
+            ui->tableView->scrollToBottom();
+    }
 
     this->textEdit->setText(QString::asprintf(
         "  ipv4: %d  ipv6: %d  arp: %d  other %d || icmp: %d  tcp: %d  udp %d  other %d || dns: %d  other: %d",

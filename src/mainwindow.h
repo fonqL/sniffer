@@ -41,10 +41,10 @@ private:
 
     std::vector<int> show_result;
 
-    static constexpr int MAXSHOW = 100;
+    static constexpr size_t MAXSHOW = 100;
 
     //i为packets中packet的下标
-    void addRow(pack x);
+    void addRow(const pack& x);
     void showRow(size_t i);
     void showRow(size_t i, const pack& x);
     void showDetails(int i);

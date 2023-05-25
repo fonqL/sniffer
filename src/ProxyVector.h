@@ -6,12 +6,15 @@
 #include <vector>
 
 //
-
+// 非线程安全
 class ProxyVector {
-    size_t offset;
+    // size_t writeOffset;
     size_t sz;
     QSqlDatabase db;
     std::vector<pack> packets;
+
+    size_t cacheOffset;
+    std::vector<pack> readCache;
 
     // 在push_back pack进来时就对其序列化保存在缓存中，减小峰值开销。
     std::vector<QByteArray> blobCache;

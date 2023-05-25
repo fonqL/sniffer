@@ -7,7 +7,7 @@ static constexpr std::chrono::seconds INTERVAL = 5s;
 
 //
 ProxyVector::ProxyVector()
-    : offset(0), sz(0), db(QSqlDatabase::addDatabase("QSQLITE")) {
+    : sz(0), db(QSqlDatabase::addDatabase("QSQLITE")), cacheOffset(0) {
     db.setDatabaseName("db");
     sql_assert(db.open());
     // 将数据移交给操作系统后就润，异步
@@ -43,7 +43,6 @@ void ProxyVector::archive() {
     exec("COMMIT");
     sql_assert(e);
 
-    offset += packets.size();
     packets.clear();
     blobCache.clear();
     lastTime = std::chrono::steady_clock::now();
@@ -65,37 +64,40 @@ const pack& ProxyVector::operator[](size_t i) {
     [[unlikely]] if (i < 0 || sz <= i)
         throw std::out_of_range("invalid visit to ProxyVector");
 
-    // 需要换页
-    if (i < offset || offset + packets.size() <= i) {
-        // 如果有未存档的缓存，则先存档
-        if (!blobCache.empty())
-            archive();
-        else
-            packets.clear();
+    size_t writeOffset = sz - packets.size();
+    if (writeOffset <= i) {
+        return packets[i - writeOffset];
+    }
 
-        // packets和blobCache肯定都为空
+    // todo 检查readCache和packets有无混用
+    // readCache需要换页
+    if (i < cacheOffset || cacheOffset + readCache.size() <= i) {
+        readCache.clear();
 
         // 以i为中心，取出前后 LENGTH 个记录
-        offset = i - LENGTH / 2;
+        cacheOffset = std::max(size_t(0), i - LENGTH / 2);
+        size_t cacheEnd = std::min(sz, cacheOffset + LENGTH / 2);
+
+        // 必须要读，因为不在写缓存里
         QSqlQuery query;
         sql_assert(query.exec(QString::asprintf(
             "SELECT data FROM packets WHERE rowid BETWEEN %zu AND %zu",
-            offset, offset + LENGTH / 2)));
+            cacheOffset + 1, std::min(writeOffset, cacheEnd))));
         while (query.next()) {
-            pack pk;
             auto buf = query.value(0).toByteArray();
-            // 只读
-            QDataStream ds(buf);
+            QDataStream ds(buf); // 只读
+            pack pk;
             ds >> pk;
-            packets.push_back(std::move(pk));
+            readCache.push_back(std::move(pk));
         }
+        // 先不把写缓存复制到读缓存了吧
     }
-    return packets[i - offset];
+    return readCache[i - cacheOffset];
 }
 
 void ProxyVector::clear() {
     exec("DELETE FROM packets");
     packets.clear();
-    offset = 0;
+    cacheOffset = 0;
     sz = 0;
 }
