@@ -245,12 +245,13 @@ MainWindow::MainWindow(QWidget* parent)
     this->catch_f = false;
     this->show_f = false;
 
-    connect(ui->radioButton, &QRadioButton::toggled, this, [this](bool checked) {
-        if (checked)
-            ui->radioButton->setText("显示过滤");
-        else
-            ui->radioButton->setText("捕获过滤");
-    });
+    // 布局变化
+    // connect(ui->radioButton, &QRadioButton::toggled, this, [this](bool checked) {
+    //     if (checked)
+    //         ui->radioButton->setText("显示过滤");
+    //     else
+    //         ui->radioButton->setText("捕获过滤");
+    // });
 
     //     //显示过滤器
     //     //todo 开一个函数吧
@@ -440,9 +441,7 @@ MainWindow::MainWindow(QWidget* parent)
             // note: custom model不用重新setHorizontalHeaderLabels
 
             this->count.clear();
-
             this->count_t.clear();
-
             this->textEdit->clear();
             ui->data->clear();
             if (this->hadDetails) {
@@ -516,7 +515,7 @@ void MainWindow::timerUpdate() {
     }
 
     this->textEdit->setText(QString::asprintf(
-        "  ipv4: %d  ipv6: %d  arp: %d  other %d || icmp: %d  tcp: %d  udp %d  other %d || dns: %d  other: %d",
+        "  ipv4: %zu  ipv6: %zu  arp: %zu  other %zu || icmp: %zu  tcp: %zu  udp %zu  other %zu || dns: %zu  other: %zu",
         this->count.ipv4_c.size(), this->count.ipv6_c.size(), this->count.arp_c.size(), this->count.other_c.size(),
         this->count.icmp_c.size(), this->count.tcp_c.size(), this->count.udp_c.size(), this->count.other_header_c.size(),
         this->count.dns_c.size(), this->count.other_app_c.size()));

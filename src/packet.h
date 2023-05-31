@@ -273,7 +273,7 @@ struct pack {
         std::vector<char> tmpbuf(raw.size() * 5, '\0');
         int offset = 0;
         for (int i = 0; i < raw.size(); i++) {
-            offset += sprintf(tmpbuf.data() + offset, "%02hx ", raw[i]);
+            offset += sprintf(tmpbuf.data() + offset, "%02hhx ", raw[i]);
             if ((i + 1) % 16 == 0)
                 tmpbuf[offset++] = '\n';
             else if ((i + 1) % 8 == 0)

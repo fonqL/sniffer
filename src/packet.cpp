@@ -100,6 +100,11 @@ void packet::parse_network<ipv6_header>(const uint8_t* begin, const uint8_t* end
     ip6.flow_label = tmp;
 
     ip6.payload_len = ntohs(ip6.payload_len);
+    for (uint i = 0; i < 8; ++i)
+        ip6.src[i] = ntohs(ip6.src[i]);
+    for (uint i = 0; i < 8; ++i)
+        ip6.dst[i] = ntohs(ip6.dst[i]);
+
     begin += sizeof(ip6); //这里没错，ipv6不是变长的
     auto ip6_next_header = ip6.next_header;
     switch (ip6_next_header) {

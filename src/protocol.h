@@ -3,6 +3,7 @@
 #include <QString>
 #include <WS2tcpip.h>
 #include <WinSock2.h>
+#include <array>
 #include <stdint.h>
 #include <string_view>
 
@@ -24,6 +25,9 @@
     }
 //
 
+#define REFLECT_NAME(str) \
+    inline static const QString name = str;
+
 struct blob {
     uint16_t len;
     const uint8_t* data() const {
@@ -39,27 +43,38 @@ struct blob {
     // }
 };
 
+using MacAddr = std::array<uint8_t, 6>;
+using IPv4Addr = std::array<uint8_t, 4>;
+using IPv6Addr = std::array<uint16_t, 8>;
+
+// hack实现，因为c数组太难用了。。几乎没有值特征。。
+static_assert(std::is_standard_layout_v<MacAddr>);
+static_assert(std::is_standard_layout_v<IPv4Addr>);
+static_assert(std::is_standard_layout_v<IPv6Addr>);
+
 struct eth_header {
+    REFLECT_NAME("eth")
+
     enum proto_t : uint16_t { //指定实现枚举的数据类型，正常使用即可，可以忽略
         IPv4 = 0x0800,        //外界获取的例子：eth_header::IPv4
         ARP = 0x0806,
         IPv6 = 0x86DD
     };
 
-    uint8_t dst[6];
-    uint8_t src[6];
+    MacAddr dst;
+    MacAddr src;
     union {           //共用一块内存
         uint16_t len; // < 1536
         proto_t type; // >= 1536
     };
 
     QString srcmac() const {
-        return QString::asprintf("%02hx-%02hx-%02hx-%02hx-%02hx-%02hx",
+        return QString::asprintf("%02hhx-%02hhx-%02hhx-%02hhx-%02hhx-%02hhx",
                                  src[0], src[1], src[2],
                                  src[3], src[4], src[5]);
     }
     QString dstmac() const {
-        return QString::asprintf("%02hx-%02hx-%02hx-%02hx-%02hx-%02hx",
+        return QString::asprintf("%02hhx-%02hhx-%02hhx-%02hhx-%02hhx-%02hhx",
                                  dst[0], dst[1], dst[2],
                                  dst[3], dst[4], dst[5]);
     }
@@ -77,26 +92,28 @@ struct eth_header {
 
 //不携带变长数据，命名为packet
 struct arp_packet {
+    REFLECT_NAME("arp")
+
     uint16_t hardware_type;
     uint16_t proto_type;
     uint8_t mac_len; // = 6
     uint8_t ip_len;  // = 4
     uint16_t op;
-    uint8_t src_mac[6]; //直接0~5输出就是正确的mac地址
-    uint8_t src_ip[4];
-    uint8_t dst_mac[6];
-    uint8_t dst_ip[4];
+    MacAddr src_mac; //直接0~5输出就是正确的mac地址
+    IPv4Addr src_ip;
+    MacAddr dst_mac;
+    IPv4Addr dst_ip;
 
     // todo 有优化的空间（脑子被门夹了吗怎么是fromstdstring
     QString srcip() const {
         char buf1[20] = {0};
-        inet_ntop(AF_INET, src_ip, buf1, sizeof(buf1));
+        inet_ntop(AF_INET, src_ip.data(), buf1, sizeof(buf1));
         return QString::fromStdString(buf1);
     }
     // todo 有优化的空间（脑子被门夹了吗怎么是fromstdstring
     QString dstip() const {
         char buf1[20] = {0};
-        inet_ntop(AF_INET, dst_ip, buf1, sizeof(buf1));
+        inet_ntop(AF_INET, dst_ip.data(), buf1, sizeof(buf1));
         return QString::fromStdString(buf1);
     }
     QString op_str() const {
@@ -107,12 +124,12 @@ struct arp_packet {
         }
     }
     QString srcmac() const {
-        return QString::asprintf("%02hx-%02hx-%02hx-%02hx-%02hx-%02hx",
+        return QString::asprintf("%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
                                  src_mac[0], src_mac[1], src_mac[2],
                                  src_mac[3], src_mac[4], src_mac[5]);
     }
     QString dstmac() const {
-        return QString::asprintf("%02hx-%02hx-%02hx-%02hx-%02hx-%02hx",
+        return QString::asprintf("%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
                                  dst_mac[0], dst_mac[1], dst_mac[2],
                                  dst_mac[3], dst_mac[4], dst_mac[5]);
     }
@@ -140,19 +157,19 @@ struct ipv4_header_base {
     uint8_t ttl;
     proto_t proto;
     uint16_t checksum;
-    uint8_t src[4]; //inet_ntop 转成字符串
-    uint8_t dst[4];
+    IPv4Addr src; //inet_ntop 转成字符串
+    IPv4Addr dst;
 
     // todo 有优化的空间（脑子被门夹了吗怎么是fromstdstring
     QString srcip() const {
         char buf1[20] = {0};
-        inet_ntop(AF_INET, src, buf1, sizeof(buf1));
+        inet_ntop(AF_INET, src.data(), buf1, sizeof(buf1));
         return QString::fromStdString(buf1);
     }
     // todo 有优化的空间（脑子被门夹了吗怎么是fromstdstring
     QString dstip() const {
         char buf1[20] = {0};
-        inet_ntop(AF_INET, dst, buf1, sizeof(buf1));
+        inet_ntop(AF_INET, dst.data(), buf1, sizeof(buf1));
         return QString::fromStdString(buf1);
     }
     STR_DEC(len)
@@ -167,10 +184,14 @@ struct ipv4_header_base {
 };
 
 struct ipv4_header : ipv4_header_base {
+    REFLECT_NAME("ip4")
+
     uint8_t op[40];
 };
 
 struct ipv6_header {
+    REFLECT_NAME("ip6");
+
     enum header_t : uint8_t {
         TCP = 6,
         UDP = 17,
@@ -183,19 +204,19 @@ struct ipv6_header {
     uint16_t payload_len;
     header_t next_header;
     uint8_t hop_limit;
-    uint8_t src[16];
-    uint8_t dst[16];
+    IPv6Addr src;
+    IPv6Addr dst;
 
     // todo 有优化的空间（脑子被门夹了吗怎么是fromstdstring
     QString srcip() const {
         char buf1[50] = {0};
-        inet_ntop(AF_INET6, src, buf1, sizeof(buf1));
+        inet_ntop(AF_INET6, src.data(), buf1, sizeof(buf1));
         return QString::fromStdString(buf1);
     }
     // todo 有优化的空间（脑子被门夹了吗怎么是fromstdstring
     QString dstip() const {
         char buf1[50] = {0};
-        inet_ntop(AF_INET6, dst, buf1, sizeof(buf1));
+        inet_ntop(AF_INET6, dst.data(), buf1, sizeof(buf1));
         return QString::fromStdString(buf1);
     }
     STR_DEC(payload_len)
@@ -205,7 +226,7 @@ struct ipv6_header {
         switch (next_header) {
         case TCP: return "TCP (6)";
         case UDP: return "UDP (17)";
-        default: return QString::asprintf("unknow (%hd)", next_header);
+        default: return QString::asprintf("unknow (%hhd)", next_header);
         }
     }
     STR_DEC(hop_limit)
@@ -275,8 +296,8 @@ inline std::pair<QString, QString> type_code_str(uint8_t type, uint8_t code) {
         return {"未知", ""};
     }();
     return {
-        QString::asprintf("%s (%hu)", s1, type),
-        QString::asprintf("%s (%hu)", s2, code)};
+        QString::asprintf("%s (%hhu)", s1, type),
+        QString::asprintf("%s (%hhu)", s2, code)};
 }
 
 } // namespace _icmp
@@ -303,6 +324,8 @@ struct icmp_packet_base {
 };
 
 struct icmp_packet : icmp_packet_base {
+    REFLECT_NAME("icmp")
+
     uint16_t len;
     const uint8_t* data() const {
         return reinterpret_cast<const uint8_t*>(this + 1);
@@ -354,10 +377,14 @@ struct tcp_header_base {
 };
 
 struct tcp_header : tcp_header_base {
+    REFLECT_NAME("tcp")
+
     uint8_t op[40];
 };
 
 struct udp_header {
+    REFLECT_NAME("udp")
+
     uint16_t src;
     uint16_t dst;
     uint16_t len;
@@ -458,6 +485,8 @@ struct dns_packet_base {
 };
 
 struct dns_packet : dns_packet_base {
+    REFLECT_NAME("dns")
+
     uint16_t len;
     const uint8_t* data() const {
         return reinterpret_cast<const uint8_t*>(this + 1);
@@ -473,6 +502,30 @@ static_assert(sizeof(tcp_header_base) == 20);
 static_assert(sizeof(udp_header) == 8);
 static_assert(sizeof(dns_packet_base) == 12);
 
+#undef REFLECT_NAME
 #undef STR_DEC
 #undef STR_HEX
 #undef STR_BOOL
+
+// PROTO_CASE(tcp_header_base::flag_t) {
+//     FIELD_CASE(cwr);
+//     FIELD_CASE(ece);
+//     FIELD_CASE(urg);
+//     FIELD_CASE(ack);
+//     FIELD_CASE(psh);
+//     FIELD_CASE(rst);
+//     FIELD_CASE(syn);
+//     FIELD_CASE(fin);
+// }
+
+template<class... Ts>
+struct type_list {};
+
+using ValidProtos = type_list<eth_header,
+                              arp_packet,
+                              ipv4_header,
+                              ipv6_header,
+                              icmp_packet,
+                              tcp_header,
+                              udp_header,
+                              dns_packet>;

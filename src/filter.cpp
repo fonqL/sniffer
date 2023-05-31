@@ -1,1038 +1,528 @@
 // #include "mainwindow.h"
-// #include <regex>
-// #include <string>
+#include "packet.h"
+#include <QString>
+#include <WS2tcpip.h>
+#include <WinSock2.h>
+#include <mapbox/variant.hpp>
+#include <mapbox/variant_cast.hpp>
 
-// /*----------显示过滤器的一些声明&函数定义--------*/
-// std::regex _empty(" ");   //去除空格
-// std::regex _and(" and "); //关键字符
-// std::regex _or(" or ");
-// std::regex _bigger(">"); //运算符
-// std::regex _smaller("<");
-// std::regex _big_or_eq(">=");
-// std::regex _small_or_eq("<=");
-// std::regex _equal("==");
-// std::regex _not_eq("!=");
+namespace mb = mapbox::util;
+//
 
-// /*-----------------------------------------------------------------*/
-// /*
-//     --ip、port仅支持==运算
-//     --各种包的len支持>、<=等运算符
-//     --多条件只允许只含有and/or,例如：
-//         tcp and dns and ip=0.0.0.0 √
-//         udp or tcp or !ipv4        √
-//         tcp and ipv4 or !dns       ×
-//         (真要搞这个太复杂了，懒得搞了)
-//     --值匹配：
-//         ip|ip.dst|ip.src|port
-//         tcp.port|tcp.dst|tcp.src
-//         udp.port|udp.dst|udp.src
-//         len|ipv4.len|.....|tcp.len
-// */
-// //判断是不是一个合法的过滤语句
-// bool MainWindow::is_a_sentence(const QString& fil) {
-//     std::string filter = fil.toStdString();
-//     if (std::regex_match(filter, std::regex(" *"))) //空语句
-//         return false;
-//     else if (std::regex_search(filter, _and)) //and语句
-//     {
-//         std::vector<std::string> filt = split_and(filter);
-//         for (int i = 0; i < filt.size(); i++) {
-//             if (is_a_filter(filt[i]) == false)
-//                 return false;
-//         }
-//         return true;
-//     } else if (std::regex_search(filter, _or)) //or语句
-//     {
-//         std::vector<std::string> filt = split_or(filter);
-//         for (uint i = 0; i < filt.size(); i++) {
-//             if (is_a_filter(filt[i]) == false)
-//                 return false;
-//         }
-//         return true;
-//     } else //单子句
-//     {
-//         return is_a_filter(filter);
-//     }
-//     //false报错：请输入正确的过滤语句
-// }
+//===----------------------------------------------------------------------===//
+// 基础设施
+//===----------------------------------------------------------------------===//
 
-// //判断子句有没有语法问题
-// bool MainWindow::is_a_filter(const std::string& filter) {
-//     //端口范围：0-65535，超出会报错
-//     //ip范围：0.0.0.0--255.255.255.255
-//     if (std::regex_match(filter, std::regex(" *arp *", std::regex::icase)))
-//         return true;
-//     else if (std::regex_match(filter, std::regex(" *tcp *", std::regex::icase)))
-//         return true;
-//     else if (std::regex_match(filter, std::regex(" *udp *", std::regex::icase)))
-//         return true;
-//     else if (std::regex_match(filter, std::regex(" *icmp *", std::regex::icase)))
-//         return true;
-//     else if (std::regex_match(filter, std::regex(" *dns *", std::regex::icase)))
-//         return true;
-//     else if (std::regex_match(filter, std::regex(" *ipv4 *", std::regex::icase)))
-//         return true;
-//     else if (std::regex_match(filter, std::regex(" *ipv6 *", std::regex::icase)))
-//         return true;
+void verify(bool cond) {
+    if (!cond) throw 0; //note: 因为错误也很常见所以不加unlikely了
+}
 
-//     else if (std::regex_match(filter, std::regex("^ *ip\\.dst *== *((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3} *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *ip\\.src *== *((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3} *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *ip *== *((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3} *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *tcp\\.dst *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *tcp\\.src *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *tcp\\.port *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *udp\\.dst *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *udp\\.src *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *udp\\.port *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *port *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$")))
-//         return true;
+template<bool C, class A, class B>
+using if_t = std::conditional_t<C, A, B>;
 
-//     //长度==
-//     else if (std::regex_match(filter, std::regex("^ *len *== *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *arp\\.len *== *[1-9][0-9]* *$"))) //arp包长度，下面同理
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *ipv4\\.len *== *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *ipv6\\.len *== *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *tcp\\.len *== *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *udp\\.len *== *[1-9][0-9]* *$")))
-//         return true;
+template<class T, class R>
+using Getter = auto(const T&) -> R;
 
-//     //长度>=
-//     else if (std::regex_match(filter, std::regex("^ *len *>= *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *arp\\.len *>= *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *ipv4\\.len *>= *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *ipv6\\.len *>= *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *tcp\\.len *>= *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *udp\\.len *>= *[1-9][0-9]* *$")))
-//         return true;
+class input_adapter {
+    QString buf;
+    qsizetype idx;
 
-//     //长度<=
-//     else if (std::regex_match(filter, std::regex("^ *len *<= *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *arp\\.len *<= *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *ipv4\\.len *<= *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *ipv6\\.len *<= *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *tcp\\.len *<= *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *udp\\.len *<= *[1-9][0-9]* *$")))
-//         return true;
+public:
+    input_adapter(const QString& s) : buf(s), idx(0) {}
+    QChar get() {
+        [[unlikely]] if (idx >= buf.size())
+            return QChar::Null;
+        return buf[idx++];
+    }
+};
 
-//     //长度>
-//     else if (std::regex_match(filter, std::regex("^ *len *> *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *arp\\.len *> *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *ipv4\\.len *> *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *ipv6\\.len *> *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *tcp\\.len *> *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *udp\\.len *> *[1-9][0-9]* *$")))
-//         return true;
+//===----------------------------------------------------------------------===//
+// 词法分析
+//===----------------------------------------------------------------------===//
 
-//     //长度<
-//     else if (std::regex_match(filter, std::regex("^ *len *< *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *arp\\.len *< *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *ipv4\\.len *< *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *ipv6\\.len *< *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *tcp\\.len *< *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *udp\\.len *< *[1-9][0-9]* *$")))
-//         return true;
+enum tok_type {
+    paren_begin,
+    paren_end,
+    eq,
+    neq,
+    le,
+    lt,
+    ge,
+    gt,
+    not_,
+    and_,
+    or_,
+    number,
+    mac,
+    ip4,
+    ip6,
+    proto,
+    proto_field,
+};
 
-//     //值不等,例如：ip != 0.0.0.0
-//     else if (std::regex_match(filter, std::regex("^ *ip\\.dst *!= *((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3} *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *ip\\.src *!= *((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3} *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *ip *!= *((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3} *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *tcp\\.dst *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *tcp\\.src *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *tcp\\.port *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *udp\\.dst *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *udp\\.src *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *udp\\.port *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *port *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *len *!= *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *arp\\.len *!= *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *ipv4\\.len *!= *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *ipv6\\.len *!= *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *tcp\\.len *!= *[1-9][0-9]* *$")))
-//         return true;
-//     else if (std::regex_match(filter, std::regex("^ *udp\\.len *!= *[1-9][0-9]* *$")))
-//         return true;
+template<tok_type... ts>
+struct tok_list {};
 
-//     //不看某协议,例如： !dns
-//     if (std::regex_match(filter, std::regex(" *!arp *", std::regex::icase)))
-//         return true;
-//     else if (std::regex_match(filter, std::regex(" *!tcp *", std::regex::icase)))
-//         return true;
-//     else if (std::regex_match(filter, std::regex(" *!udp *", std::regex::icase)))
-//         return true;
-//     else if (std::regex_match(filter, std::regex(" *!icmp *", std::regex::icase)))
-//         return true;
-//     else if (std::regex_match(filter, std::regex(" *!dns *", std::regex::icase)))
-//         return true;
-//     else if (std::regex_match(filter, std::regex(" *!ipv4 *", std::regex::icase)))
-//         return true;
-//     else if (std::regex_match(filter, std::regex(" *!ipv6 *", std::regex::icase)))
-//         return true;
+constexpr tok_list<eq, neq, lt, le, gt, ge> ValidOps;
 
-//     else
-//         return false;
-// }
+uint prec(tok_type t) {
+    switch (t) {
+    case or_: return 1;
+    case and_: return 2;
+    default: return 0;
+    }
+}
 
-// //过滤抓到的包,结果返回的出口
-// std::vector<int> MainWindow::catched_filter(const std::string& s) {
-//     if (std::regex_search(s, _and)) //and语句
-//     {
-//         std::vector<std::vector<int>> temp;
-//         std::vector<std::string> filt = split_and(s);
-//         //分析子句，将结果存入temp
-//         for (int i = 0; i < filt.size(); i++) {
-//             temp.push_back(analyse_filter(filt[i]));
-//         }
-//         return complex_and(temp);
-//     } else if (std::regex_search(s, _or)) //or语句
-//     {
-//         std::vector<std::vector<int>> temp;
-//         std::vector<std::string> filt = split_or(s);
-//         for (int i = 0; i < filt.size(); i++) {
-//             temp.push_back(analyse_filter(filt[i]));
-//         }
-//         return complex_or(temp);
-//     }
-//     //单子句直接丢进analyse_filter()就能得出结果了
-//     else
-//         return analyse_filter(s);
-// }
+using tok_val = mb::variant<uint,
+                            QString,
+                            // todo 要改为std::vector<QString>了？？因为tcp。。
+                            // 。暂时不支持
+                            std::pair<QString, QString>,
+                            IPv4Addr,
+                            IPv6Addr,
+                            MacAddr>;
 
-// //分析子句,返回一个索引容器
-// std::vector<int> MainWindow::analyse_filter(const std::string& filter) {
-//     //预处理，将运算符后面的值提取出来存入set_data
-//     std::vector<std::string> temp_data;
-//     std::string set_data;
-//     std::vector<int> results;
-//     if ((std::regex_search(filter, _equal))) // ==
-//     {
-//         std::sregex_token_iterator beg(filter.begin(), filter.end(), _equal, -1);
-//         std::sregex_token_iterator end;
-//         for (; beg != end; beg++) {
-//             temp_data.push_back(beg->str());
-//         }
-//         if (temp_data.size() == 2) {
-//             set_data = std::regex_replace(temp_data[1], _empty, "");
-//         }
-//     } else if ((std::regex_search(filter, _big_or_eq))) // >=
-//     {
-//         std::sregex_token_iterator beg(filter.begin(), filter.end(), _big_or_eq, -1);
-//         std::sregex_token_iterator end;
-//         for (; beg != end; beg++) {
-//             temp_data.push_back(beg->str());
-//         }
-//         if (temp_data.size() == 2) {
-//             set_data = std::regex_replace(temp_data[1], _empty, "");
-//         }
-//     } else if ((std::regex_search(filter, _small_or_eq))) // <=
-//     {
-//         std::sregex_token_iterator beg(filter.begin(), filter.end(), _small_or_eq, -1);
-//         std::sregex_token_iterator end;
-//         for (; beg != end; beg++) {
-//             temp_data.push_back(beg->str());
-//         }
-//         if (temp_data.size() == 2) {
-//             set_data = std::regex_replace(temp_data[1], _empty, "");
-//         }
-//     } else if ((std::regex_search(filter, _smaller))) // <
-//     {
-//         std::sregex_token_iterator beg(filter.begin(), filter.end(), _smaller, -1);
-//         std::sregex_token_iterator end;
-//         for (; beg != end; beg++) {
-//             temp_data.push_back(beg->str());
-//         }
-//         if (temp_data.size() == 2) {
-//             set_data = std::regex_replace(temp_data[1], _empty, "");
-//         }
-//     } else if ((std::regex_search(filter, _bigger))) // >
-//     {
-//         std::sregex_token_iterator beg(filter.begin(), filter.end(), _bigger, -1);
-//         std::sregex_token_iterator end;
-//         for (; beg != end; beg++) {
-//             temp_data.push_back(beg->str());
-//         }
-//         if (temp_data.size() == 2) {
-//             set_data = std::regex_replace(temp_data[1], _empty, "");
-//         }
-//     } else if ((std::regex_search(filter, _not_eq))) {
-//         std::sregex_token_iterator beg(filter.begin(), filter.end(), _not_eq, -1);
-//         std::sregex_token_iterator end;
-//         for (; beg != end; beg++) {
-//             temp_data.push_back(beg->str());
-//         }
-//         if (temp_data.size() == 2) {
-//             set_data = std::regex_replace(temp_data[1], _empty, "");
-//         }
-//     }
+constexpr mb::no_init noinit;
 
-//     //按协议
-//     if (std::regex_match(filter, std::regex(" *arp *", std::regex::icase))) //arp协议
-//         return this->count.arp_c;
-//     else if (std::regex_match(filter, std::regex(" *tcp *", std::regex::icase)))
-//         return this->count.tcp_c;
-//     else if (std::regex_match(filter, std::regex(" *udp *", std::regex::icase)))
-//         return this->count.udp_c;
-//     else if (regex_match(filter, std::regex(" *icmp *", std::regex::icase)))
-//         return this->count.icmp_c;
-//     else if (regex_match(filter, std::regex(" *dns *", std::regex::icase)))
-//         return this->count.dns_c;
-//     else if (regex_match(filter, std::regex(" *ipv4 *", std::regex::icase)))
-//         return this->count.ipv4_c;
-//     else if (std::regex_match(filter, std::regex(" *ipv6 *", std::regex::icase)))
-//         return this->count.ipv6_c; //下面是取反
-//     else if (std::regex_match(filter, std::regex(" *!arp *", std::regex::icase)))
-//         return fixed_result(this->count.arp_c);
-//     else if (std::regex_match(filter, std::regex(" *!tcp *", std::regex::icase)))
-//         return fixed_result(this->count.tcp_c);
-//     else if (std::regex_match(filter, std::regex(" *!udp *", std::regex::icase)))
-//         return fixed_result(this->count.udp_c);
-//     else if (regex_match(filter, std::regex(" *!icmp *", std::regex::icase)))
-//         return fixed_result(this->count.icmp_c);
-//     else if (regex_match(filter, std::regex(" *!dns *", std::regex::icase)))
-//         return fixed_result(this->count.dns_c);
-//     else if (regex_match(filter, std::regex(" *!ipv4 *", std::regex::icase)))
-//         return fixed_result(this->count.ipv4_c);
-//     else if (std::regex_match(filter, std::regex(" *!ipv6 *", std::regex::icase)))
-//         return fixed_result(this->count.ipv6_c);
+struct tok {
+    tok_type type;
+    tok_val value;
+};
 
-//     //源、目的IP地址
-//     else if (std::regex_match(filter, std::regex("^ *ip *== *((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3} *$"))) {
-//         for (int i = 0; i < this->packets.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             std::string saved1 = std::regex_replace(aaa.srcIp.toStdString(), _empty, "");
-//             std::string saved2 = std::regex_replace(aaa.desIp.toStdString(), _empty, "");
-//             if ((saved1 == set_data) || (saved2 == set_data))
-//                 results.push_back(i);
-//         }
-//         return results;
-//     }
-//     //目的ip地址
-//     else if (std::regex_match(filter, std::regex("^ *ip\\.dst *== *((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3} *$"))) {
-//         for (int i = 0; i < this->packets.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             std::string saved = std::regex_replace(aaa.desIp.toStdString(), _empty, "");
-//             if (saved == set_data)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     }
-//     //源ip地址
-//     else if (std::regex_match(filter, std::regex("^ *ip\\.src *== *((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3} *$"))) {
-//         for (int i = 0; i < this->packets.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             std::string saved = std::regex_replace(aaa.srcIp.toStdString(), _empty, "");
-//             if (saved == set_data)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     }
+class lexer {
+    input_adapter ia;
+    QChar last_char;
 
-//     //TCP目的端口
-//     else if (std::regex_match(filter, std::regex("^ *tcp\\.dst *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
-//         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             uint16_t saved = aaa.tcp.dst;
-//             uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
-//             if (trans == saved)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     }
-//     //TCP源端口
-//     else if (std::regex_match(filter, std::regex("^ *tcp\\.src *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
-//         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             uint16_t saved = aaa.tcp.src;
-//             uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
-//             if (trans == saved)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     }
-//     //TCP源、目的端口
-//     else if (std::regex_match(filter, std::regex("^ *tcp\\.port *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
-//         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             uint16_t saved1 = aaa.tcp.dst;
-//             uint16_t saved2 = aaa.tcp.src;
-//             uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
-//             if ((trans == saved1) || (trans == saved2))
-//                 results.push_back(i);
-//         }
-//         return results;
-//     }
+    QChar get() { return last_char = ia.get(); }
+    void skipspace() {
+        while (last_char.isSpace() || last_char == '\t')
+            get();
+    }
 
-//     //UDP目的端口
-//     else if (std::regex_match(filter, std::regex("^ *udp\\.dst *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
-//         for (int i = 0; i < this->count.udp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             uint16_t saved = aaa.udp.dst;
-//             uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
-//             if (trans == saved)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     }
-//     //UDP源端口
-//     else if (std::regex_match(filter, std::regex("^ *udp\\.src *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
-//         for (int i = 0; i < this->count.udp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             uint16_t saved = aaa.udp.src;
-//             uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
-//             if (trans == saved)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     }
-//     //UDP源、目的端口
-//     else if (std::regex_match(filter, std::regex("^ *udp\\.port *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
-//         for (int i = 0; i < this->count.udp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             uint16_t saved1 = aaa.udp.dst;
-//             uint16_t saved2 = aaa.udp.src;
-//             uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
-//             if ((trans == saved1) || (trans == saved2))
-//                 results.push_back(i);
-//         }
-//         return results;
-//     }
+public:
+    lexer(const QString& s) : ia(s), last_char(ia.get()) {}
 
-//     //所有端口
-//     else if (std::regex_match(filter, std::regex("^ *port *== *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
-//         for (int i = 0; i < this->count.udp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             uint16_t saved1 = aaa.udp.dst;
-//             uint16_t saved2 = aaa.udp.src;
-//             uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
-//             if ((trans == saved1) || (trans == saved2))
-//                 results.push_back(i);
-//         }
-//         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             uint16_t saved1 = aaa.tcp.dst;
-//             uint16_t saved2 = aaa.tcp.src;
-//             uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
-//             if ((trans == saved1) || (trans == saved2))
-//                 results.push_back(i);
-//         }
-//         return results;
-//     }
+    template<class T>
+    T scan_type() {
+        skipspace();
+        verify(last_char.isNumber());
+        if constexpr (std::is_same_v<T, uint>) {
+            QString s;
+            do {
+                s += last_char;
+            } while (get().isNumber());
+            s.toStdString();
 
-//     //长度限制
-//     //长度==
-//     else if (std::regex_match(filter, std::regex("^ *len *== *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->packets.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved == trans)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *arp\\.len *== *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->count.arp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved == trans)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *ipv4\\.len *== *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->count.ipv4_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved == trans)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *ipv6\\.len *== *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->count.ipv6_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved == trans)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *tcp\\.len *== *[1-9][0-9]* *$"))) {
-//         int trans = std::stoi(set_data, 0, 10);
-//         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = int(aaa.tcp.header_len);
-//             if (saved == trans)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *udp\\.len *== *[1-9][0-9]* *$"))) {
-//         int trans = std::stoi(set_data, 0, 10);
-//         for (int i = 0; i < this->count.udp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = int(aaa.udp.len);
-//             if (saved == trans)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     }
-//     //长度>=
-//     else if (std::regex_match(filter, std::regex("^ *len *>= *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->packets.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved >= trans)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *arp\\.len *>= *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->count.arp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved >= trans)
-//                 results.push_back(count.arp_c[i]);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *ipv4\\.len *>= *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->count.ipv4_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved >= trans)
-//                 results.push_back(count.ipv4_c[i]);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *ipv6\\.len *>= *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->count.ipv6_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved >= trans)
-//                 results.push_back(count.ipv6_c[i]);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *tcp\\.len *>= *[1-9][0-9]* *$"))) {
-//         int trans = std::stoi(set_data, 0, 10);
-//         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = int(aaa.tcp.header_len);
-//             if (saved >= trans)
-//                 results.push_back(count.tcp_c[i]);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *udp\\.len *>= *[1-9][0-9]* *$"))) {
-//         int trans = std::stoi(set_data, 0, 10);
-//         for (int i = 0; i < this->count.udp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = int(aaa.udp.len);
-//             if (saved >= trans)
-//                 results.push_back(count.udp_c[i]);
-//         }
-//         return results;
-//     }
-//     //长度<=
-//     else if (std::regex_match(filter, std::regex("^ *len *<= *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->packets.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved <= trans)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *arp\\.len *<= *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->count.arp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved <= trans)
-//                 results.push_back(count.arp_c[i]);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *ipv4\\.len *<= *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->count.ipv4_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved <= trans)
-//                 results.push_back(count.ipv4_c[i]);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *ipv6\\.len *<= *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->count.ipv6_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved <= trans)
-//                 results.push_back(count.ipv6_c[i]);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *tcp\\.len *<= *[1-9][0-9]* *$"))) {
-//         int trans = std::stoi(set_data, 0, 10);
-//         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = int(aaa.tcp.header_len);
-//             if (saved <= trans)
-//                 results.push_back(count.tcp_c[i]);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *udp\\.len *<= *[1-9][0-9]* *$"))) {
-//         int trans = std::stoi(set_data, 0, 10);
-//         for (int i = 0; i < this->count.udp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = int(aaa.udp.len);
-//             if (saved <= trans)
-//                 results.push_back(count.udp_c[i]);
-//         }
-//         return results;
-//     }
-//     //长度<
-//     else if (std::regex_match(filter, std::regex("^ *len *< *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->packets.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved < trans)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *arp\\.len *< *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->count.arp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved < trans)
-//                 results.push_back(count.arp_c[i]);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *ipv4\\.len *< *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->count.ipv4_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved < trans)
-//                 results.push_back(count.ipv4_c[i]);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *ipv6\\.len *< *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->count.ipv6_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved < trans)
-//                 results.push_back(count.ipv6_c[i]);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *tcp\\.len *< *[1-9][0-9]* *$"))) {
-//         int trans = std::stoi(set_data, 0, 10);
-//         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = int(aaa.tcp.header_len);
-//             if (saved < trans)
-//                 results.push_back(count.tcp_c[i]);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *udp\\.len *< *[1-9][0-9]* *$"))) {
-//         int trans = std::stoi(set_data, 0, 10);
-//         for (int i = 0; i < this->count.udp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = int(aaa.udp.len);
-//             if (saved < trans)
-//                 results.push_back(count.udp_c[i]);
-//         }
-//         return results;
-//     }
-//     //长度>
-//     else if (std::regex_match(filter, std::regex("^ *len *> *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->packets.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved > trans)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *arp\\.len *> *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->count.arp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved > trans)
-//                 results.push_back(count.arp_c[i]);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *ipv4\\.len *> *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->count.ipv4_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved > trans)
-//                 results.push_back(count.ipv4_c[i]);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *ipv6\\.len *> *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->count.ipv6_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved > trans)
-//                 results.push_back(count.ipv6_c[i]);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *tcp\\.len *> *[1-9][0-9]* *$"))) {
-//         int trans = std::stoi(set_data, 0, 10);
-//         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = int(aaa.tcp.header_len);
-//             if (saved > trans)
-//                 results.push_back(count.tcp_c[i]);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *udp\\.len *> *[1-9][0-9]* *$"))) {
-//         int trans = std::stoi(set_data, 0, 10);
-//         for (int i = 0; i < this->count.udp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = int(aaa.udp.len);
-//             if (saved > trans)
-//                 results.push_back(count.udp_c[i]);
-//         }
-//         return results;
-//     }
+            bool ok;
+            uint n = s.toUInt(&ok);
+            verify(ok);
+            return n;
+        } else if constexpr (std::is_same_v<T, IPv4Addr>) {
+            std::string s;
+            do {
+                s += char(last_char.unicode());
+                get();
+            } while (last_char.isNumber() || last_char == '.');
 
-//     //各种不等关系!=
-//     else if (std::regex_match(filter, std::regex("^ *ip *!= *((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3} *$"))) {
-//         for (int i = 0; i < this->packets.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             std::string saved1 = std::regex_replace(aaa.srcIp.toStdString(), _empty, "");
-//             std::string saved2 = std::regex_replace(aaa.desIp.toStdString(), _empty, "");
-//             if ((saved1 != set_data) && (saved2 != set_data))
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *ip\\.dst *!= *((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3} *$"))) {
-//         for (int i = 0; i < this->packets.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             std::string saved = std::regex_replace(aaa.desIp.toStdString(), _empty, "");
-//             if (saved != set_data)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *ip\\.src *!= *((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})(\\.((2(5[0-5]|[0-4]\\d))|[0-1]?\\d{1,2})){3} *$"))) {
-//         for (int i = 0; i < this->packets.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             std::string saved = std::regex_replace(aaa.srcIp.toStdString(), _empty, "");
-//             if (saved != set_data)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *tcp\\.dst *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
-//         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             uint16_t saved = aaa.tcp.dst;
-//             uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
-//             if (trans != saved)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *tcp\\.src *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
-//         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             uint16_t saved = aaa.tcp.src;
-//             uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
-//             if (trans != saved)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *tcp\\.port *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
-//         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             uint16_t saved1 = aaa.tcp.dst;
-//             uint16_t saved2 = aaa.tcp.src;
-//             uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
-//             if ((trans != saved1) && (trans != saved2))
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *udp\\.dst *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
-//         for (int i = 0; i < this->count.udp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             uint16_t saved = aaa.udp.dst;
-//             uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
-//             if (trans != saved)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *udp\\.src *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
-//         for (int i = 0; i < this->count.udp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             uint16_t saved = aaa.udp.src;
-//             uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
-//             if (trans != saved)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *udp\\.port *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
-//         for (int i = 0; i < this->count.udp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             uint16_t saved1 = aaa.udp.dst;
-//             uint16_t saved2 = aaa.udp.src;
-//             uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
-//             if ((trans != saved1) && (trans != saved2))
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *port *!= *((6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])|[0-5]?\\d{0,4}) *$"))) {
-//         for (int i = 0; i < this->count.udp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             uint16_t saved1 = aaa.udp.dst;
-//             uint16_t saved2 = aaa.udp.src;
-//             uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
-//             if ((trans != saved1) && (trans != saved2))
-//                 results.push_back(i);
-//         }
-//         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             uint16_t saved1 = aaa.tcp.dst;
-//             uint16_t saved2 = aaa.tcp.src;
-//             uint16_t trans = std::stoul(set_data); //把set_data 转成uint16_t
-//             if ((trans != saved1) && (trans != saved2))
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *len *!= *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->packets.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved != trans)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *arp\\.len *!= *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->count.arp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved != trans)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *ipv4\\.len *!= *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->count.ipv4_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved != trans)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *ipv6\\.len *!= *[1-9][0-9]* *$"))) {
-//         for (int i = 0; i < this->count.ipv6_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = aaa.len.toInt();
-//             int trans = std::stoi(set_data.c_str());
-//             if (saved != trans)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *tcp\\.len *!= *[1-9][0-9]* *$"))) {
-//         int trans = std::stoi(set_data, 0, 10);
-//         for (int i = 0; i < this->count.tcp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = int(aaa.tcp.header_len);
-//             if (saved != trans)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else if (std::regex_match(filter, std::regex("^ *udp\\.len *!= *[1-9][0-9]* *$"))) {
-//         int trans = std::stoi(set_data, 0, 10);
-//         for (int i = 0; i < this->count.udp_c.size(); i++) {
-//             analysis aaa(this->packets.at(i));
-//             int saved = int(aaa.udp.len);
-//             if (saved != trans)
-//                 results.push_back(i);
-//         }
-//         return results;
-//     } else {
-//         //改一下，返回空vector
-//         std::vector<int> not_found;
-//         return not_found;
-//     }
-// }
+            IPv4Addr addr;
+            verify(inet_pton(AF_INET, s.c_str(), addr.data()) == 1);
+            return addr;
+        } else {
+            std::string s;
+            do {
+                s += char(last_char.unicode());
+                get();
+            } while (last_char.isNumber() || last_char == ':');
 
-// //分割and语句
-// std::vector<std::string> MainWindow::split_and(const std::string& filter) {
-//     std::vector<std::string> filt;
-//     std::sregex_token_iterator beg(filter.begin(), filter.end(), _and, -1);
-//     std::sregex_token_iterator end; //结束标志
-//     for (; beg != end; beg++) {
-//         filt.push_back(beg->str());
-//     }
-//     return filt;
-// }
+            if constexpr (std::is_same_v<T, MacAddr>) {
+                MacAddr addr;
+                verify(sscanf(s.c_str(), "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
+                              &addr[0], &addr[1], &addr[2], &addr[3], &addr[4], &addr[5])
+                       == 6);
+                return addr;
+            } else {
+                static_assert(std::is_same_v<T, IPv6Addr>);
 
-// //分割or语句
-// std::vector<std::string> MainWindow::split_or(const std::string& filter) {
-//     std::vector<std::string> fff;
-//     std::sregex_token_iterator beg(filter.begin(), filter.end(), _or, -1);
-//     std::sregex_token_iterator end; //结束标志
-//     for (; beg != end; beg++) {
-//         fff.push_back(beg->str());
-//     }
-//     return fff;
-// }
+                IPv6Addr addr;
+                verify(inet_pton(AF_INET6, s.c_str(), addr.data()) == 1);
+                return addr;
+            }
+        }
+    }
 
-// //求并集
-// std::vector<int> MainWindow::complex_or(std::vector<std::vector<int>>& temp) {
-//     std::vector<int> results;
-//     std::vector<int> to_delete;
+    // value depends on input string
+    tok scan() {
+        skipspace();
+        if (std::isalpha(last_char.unicode())) {
+            QString ptc;
+            do {
+                ptc += last_char;
+            } while (std::isalpha(get().unicode()));
 
-//     for (int i = 0; i < temp.size(); i++)
-//         if (temp[i].size() == 0)
-//             to_delete.push_back(i);
-//     //删除空的索引组
-//     if (to_delete.size() != 0) {
-//         for (int i = 0; i < to_delete.size(); i++)
-//             temp.push_back(temp[to_delete[i]]);
-//     }
-//     //如果temp还有东西，说明过滤出东西来了
-//     //用第一个索引组初始化
-//     if (temp.size() != 0) {
-//         for (int i = 0; i < temp[0].size(); i++)
-//             results.push_back(temp[0][i]);
-//     } else return results; //返回一个空索引
-//     //对temp中逐一判断：
-//     //第i个索引组里的第j个元素 是否 在results中
-//     for (int i = 1; i < temp.size(); i++) {
-//         for (int j = 0; j < temp[i].size(); j++) {
-//             bool exits = false; //标志某索引不在results中
-//             for (int x = 0; x < results.size(); x++) {
-//                 if (temp[i][j] == results[x]) {
-//                     exits = true; //已经存在索引
-//                     break;
-//                 }
-//             }
-//             if (!exits) {
-//                 results.push_back(temp[i][j]);
-//             }
-//             //不存在索引，就将这个索引存入results
-//         }
-//     }
-//     return results;
-// }
+            if (last_char == '.') {
+                QString field;
+                while (std::isalpha(get().unicode())) {
+                    field += last_char;
+                }
+                return {proto_field, std::pair(ptc, field)};
+            } else {
+                return {proto, ptc};
+            }
+        } else if (last_char == '(') {
+            get();
+            return {paren_begin, noinit};
+        } else if (last_char == ')') {
+            get();
+            return {paren_end, noinit};
+        } else if (last_char == '=') {
+            verify(get() == '=');
+            get();
+            return {eq, noinit};
+        } else if (last_char == '!') {
+            if (get() == '=')
+                return get(), tok{neq, noinit};
+            else
+                return {not_, noinit};
+        } else if (last_char == '<') {
+            if (get() == '=')
+                return get(), tok{le, noinit};
+            else
+                return {lt, noinit};
+        } else if (last_char == '>') {
+            if (get() == '=')
+                return get(), tok{ge, noinit};
+            else
+                return {gt, noinit};
+        } else if (last_char == '&') {
+            verify(get() == '&');
+            get();
+            return {and_, noinit};
+        } else {
+            verify(last_char == '|');
+            verify(get() == '|');
+            get();
+            return {or_, noinit};
+        }
+    }
+};
 
-// //求交集
-// std::vector<int> MainWindow::complex_and(std::vector<std::vector<int>>& temp) {
-//     std::vector<int> results;
-//     std::vector<int> to_delete;
-//     for (int i = 0; i < temp.size(); i++)
-//         if (temp[i].size() == 0)
-//             to_delete.push_back(i);
-//     //删除空的索引组
-//     if (to_delete.size() != 0) {
-//         for (int i = 0; i < to_delete.size(); i++)
-//             temp.push_back(temp[to_delete[i]]);
-//     }
-//     //如果temp还有东西，说明过滤出东西来了
-//     //过滤结果为空，返回一个空索引
-//     if (temp.size() == 0) return results;
+//===----------------------------------------------------------------------===//
+// 抽象语法树
+//===----------------------------------------------------------------------===//
 
-//     int min_length = temp[0].size(); //索引长度最小值的初始化
-//     int min_index = 0;               //最小索引组的位置
-//     int pass = 0;                    //交集元素个数
-//     int deleted = 0;                 //不符合条件的个数
-//     //找出索引最少的组
-//     for (int i = 1; i < temp.size(); i++)
-//         if (temp[i].size() < min_length) {
-//             min_length = temp[i].size();
-//             min_index = i;
-//         }
-//     for (int x = 0; x < min_length; x++) {
-//         bool exist = false;
-//         for (int y = 0; y < temp.size(); y++) {
-//             if (y == min_index) continue; //跳过最少的那个组
-//             exist = false;
-//             //逐一判断，是否为其他索引组的交集元素
-//             for (int z = 0; z < temp[y].size(); z++) {
-//                 if (temp[min_index][x] == temp[y][z]) {
-//                     exist = true;
-//                     //是该索引组的交集元素
-//                     break;
-//                 }
-//             }
-//         }
-//         //判断temp[min_index][x]是否为所有组的交集元素
-//         if (exist) {
-//             results.push_back(temp[min_index][x]);
-//             pass++;
-//         } else deleted++;
+// 抽象基类
+struct ExprAST {
+    virtual bool check(const packet&) = 0;
+    virtual ~ExprAST() = default;
+};
 
-//         if (pass + deleted >= min_length) break;
-//         //temp[min_index]中的元素都符合/都不符合
-//     }
-//     return results;
-// }
+// 两两bool表达式的组合
+template<tok_type Op>
+struct BinaryAST : ExprAST {
+    std::unique_ptr<ExprAST> l, r;
 
-// //求补集
-// std::vector<int> MainWindow::fixed_result(const ProxyIntVector& temp) {
-//     std::vector<int> results;
-//     bool exist = false;
-//     for (int i = 0; i < this->packets.size(); i++) {
-//         exist = false;
-//         for (int j = 0; j < temp.size(); j++)
-//             if (i == temp[j]) {
-//                 exist = true;
-//                 break;
-//             }
-//         if (!exist) results.push_back(i);
-//     }
-//     return results;
-// }
+    BinaryAST(std::unique_ptr<ExprAST> l, std::unique_ptr<ExprAST> r)
+        : l(std::move(l)), r(std::move(r)) {}
+
+    bool check(const packet& x) override {
+        if constexpr (Op == and_)
+            return l->check(x) && r->check(x);
+        else
+            return l->check(x) || r->check(x);
+    }
+};
+
+// not单目运算符
+struct UnaryAST : ExprAST {
+    std::unique_ptr<ExprAST> expr;
+
+    UnaryAST(std::unique_ptr<ExprAST> e) : expr(std::move(e)) {}
+    bool check(const packet& x) override { return !expr->check(x); }
+};
+
+template<class T>
+struct ProtoExprAST : ExprAST {
+    bool check(const packet& x) override { return x.get<T>() != nullptr; }
+};
+
+template<tok_type Op, class T, class R>
+struct ProtoFieldExprAST : ExprAST {
+    Getter<T, R>* getter;
+    R val;
+
+    ProtoFieldExprAST(Getter<T, R>* func, R x) : getter(func), val(std::move(x)) {}
+    bool check(const packet& x) override {
+        if (auto* proto = x.get<T>()) {
+            if constexpr (Op == eq) return getter(*proto) == val;
+            else if constexpr (Op == neq) return getter(*proto) != val;
+            else if constexpr (Op == le) return getter(*proto) < val;
+            else if constexpr (Op == lt) return getter(*proto) <= val;
+            else if constexpr (Op == ge) return getter(*proto) >= val;
+            else return getter(*proto) > val;
+
+        } else return false;
+    }
+};
+
+//===----------------------------------------------------------------------===//
+// 构造或静态语法解析
+//===----------------------------------------------------------------------===//
+
+std::unique_ptr<ExprAST> mkBinary(tok_type op, std::unique_ptr<ExprAST> l, std::unique_ptr<ExprAST> r) {
+    if (op == and_)
+        return std::make_unique<BinaryAST<and_>>(std::move(l), std::move(r));
+    else {
+        verify(op == or_);
+        return std::make_unique<BinaryAST<or_>>(std::move(l), std::move(r));
+    }
+}
+
+//
+
+template<class T>
+bool mkPrt_case(const QString& proto_str, std::unique_ptr<ExprAST>& out) {
+    if (proto_str == T::name) {
+        out = std::make_unique<ProtoExprAST<T>>();
+        return true;
+    }
+    return false;
+}
+template<class... Ts>
+std::unique_ptr<ExprAST> mkPrt_match(const QString& proto_str, type_list<Ts...>) {
+    std::unique_ptr<ExprAST> ret = nullptr;
+    verify((mkPrt_case<Ts>(proto_str, ret) || ...));
+    return ret;
+}
+
+//
+
+template<class T, class R, tok_type t>
+bool mkPF_case(tok_type op, Getter<T, R>* func, R&& val, std::unique_ptr<ExprAST>& out) {
+    if (op == t) {
+        out = std::make_unique<ProtoFieldExprAST<t, T, R>>(func, std::move(val));
+        return true;
+    }
+    return false;
+}
+template<class T, class R, tok_type... ts>
+std::unique_ptr<ExprAST> mkPF_match(tok_type op, Getter<T, R>* func, R&& val, tok_list<ts...>) {
+    std::unique_ptr<ExprAST> ret = nullptr;
+    verify((mkPF_case<T, R, ts>(op, func, std::move(val), ret) || ...));
+    return ret;
+}
+//===----------------------------------------------------------------------===//
+// 语法解析
+//===----------------------------------------------------------------------===//
+
+#define FIELD_CASE(field)                                        \
+    {                                                            \
+        static const QString field_name = #field;                \
+        if (field_str == field_name) {                           \
+            using rawR = decltype(((T*)nullptr)->field);         \
+            using R = if_t<std::is_enum_v<rawR>, uint, rawR>;    \
+            using ParseR = if_t<std::is_integral_v<R>, uint, R>; \
+            return ::mkPF_match<T, R>(                           \
+                op, +[](const T& x) -> R { return x.field; },    \
+                lex.scan_type<ParseR>(), ValidOps);              \
+        }                                                        \
+    }
+
+#define PROTO_MATCH \
+    if constexpr (false) {}
+
+#define PROTO_CASE(proto) \
+    else if constexpr (std::is_same_v<T, proto>)
+
+class parser {
+private:
+    //===------------------------------------------------------------------===//
+    // RL-类型依赖语法解析，需要this.lexer，所以必须是成员函数
+    //===------------------------------------------------------------------===//
+    template<class T>
+    std::unique_ptr<ExprAST> parse_field(const QString& field_str) {
+        auto op = last_tok.type;
+        verify(op == eq || op == neq || op == le || op == lt || op == ge || op == gt);
+        get();
+
+        PROTO_MATCH
+        PROTO_CASE(eth_header) {
+            FIELD_CASE(src);
+            FIELD_CASE(dst);
+            FIELD_CASE(len);
+            FIELD_CASE(type);
+        }
+        PROTO_CASE(arp_packet) {
+            FIELD_CASE(hardware_type);
+            FIELD_CASE(proto_type);
+            FIELD_CASE(mac_len);
+            FIELD_CASE(ip_len);
+            FIELD_CASE(op);
+            FIELD_CASE(src_mac);
+            FIELD_CASE(src_ip);
+            FIELD_CASE(dst_mac);
+            FIELD_CASE(dst_ip);
+        }
+        PROTO_CASE(ipv4_header) {
+            FIELD_CASE(version);
+            FIELD_CASE(header_len);
+            FIELD_CASE(ds);
+            FIELD_CASE(len);
+            FIELD_CASE(id);
+            FIELD_CASE(df);
+            FIELD_CASE(mf);
+            FIELD_CASE(offset);
+            FIELD_CASE(ttl);
+            FIELD_CASE(proto);
+            FIELD_CASE(checksum);
+            FIELD_CASE(src);
+            FIELD_CASE(dst);
+        }
+        PROTO_CASE(ipv6_header) {
+            FIELD_CASE(version);
+            FIELD_CASE(traffic_class);
+            FIELD_CASE(flow_label);
+            FIELD_CASE(payload_len);
+            FIELD_CASE(next_header);
+            FIELD_CASE(hop_limit);
+            FIELD_CASE(src);
+            FIELD_CASE(dst);
+        }
+        PROTO_CASE(icmp_packet) {
+            FIELD_CASE(type);
+            FIELD_CASE(code);
+            FIELD_CASE(checksum);
+            FIELD_CASE(field);
+        }
+        PROTO_CASE(tcp_header) {
+            FIELD_CASE(src);
+            FIELD_CASE(dst);
+            FIELD_CASE(seq);
+            FIELD_CASE(ack);
+            FIELD_CASE(header_len);
+            // FIELD_CASE(flags);
+            FIELD_CASE(window_size);
+            FIELD_CASE(checksum);
+            FIELD_CASE(urgent_ptr);
+        }
+        PROTO_CASE(udp_header) {
+            FIELD_CASE(src);
+            FIELD_CASE(dst);
+            FIELD_CASE(len);
+            FIELD_CASE(checksum);
+        }
+        else {
+            static_assert(std::is_same_v<T, dns_packet>);
+            FIELD_CASE(id);
+            // FIELD_CASE(flags);
+            FIELD_CASE(questions);
+            FIELD_CASE(answer_rrs);
+            FIELD_CASE(authority_rrs);
+            FIELD_CASE(additional_rrs);
+        }
+        throw 0; // 没有找到field
+    }
+
+    template<class T>
+    bool parsePF_case(const QString& proto_str, const QString& field_str, std::unique_ptr<ExprAST>& out) {
+        if (proto_str == T::name) {
+            out = parse_field<T>(field_str);
+            return true;
+        }
+        return false;
+    }
+
+    template<class... Ts>
+    std::unique_ptr<ExprAST> parsePF_match(const QString& proto_str, const QString& field_str, type_list<Ts...>) {
+        std::unique_ptr<ExprAST> ret = nullptr;
+        verify((parsePF_case<Ts>(proto_str, field_str, ret) || ...));
+        return ret;
+    }
+
+private:
+    lexer lex;
+    tok last_tok;
+
+public:
+    parser(const QString& s) : lex(s), last_tok(lex.scan()) {}
+    std::unique_ptr<ExprAST> parse() try {
+        return parseExpr();
+    } catch (...) { return nullptr; }
+
+private:
+    tok& get() { return last_tok = lex.scan(); }
+
+    std::unique_ptr<ExprAST> parseExpr() {
+        return parseBinTail(parseBinHead());
+    }
+
+    std::unique_ptr<ExprAST> parseBinHead() {
+        if (last_tok.type == paren_begin)
+            return parseParen();
+        if (last_tok.type == not_)
+            return parseUnary();
+        if (last_tok.type == proto)
+            return parseProto();
+        verify(last_tok.type == proto_field);
+        return parseProtoField();
+    }
+
+    std::unique_ptr<ExprAST> parseBinTail(std::unique_ptr<ExprAST> prehead) {
+        tok_type op1 = last_tok.type;
+        if (op1 != and_ && op1 != or_)
+            return prehead;
+        get();
+        auto head = parseBinHead();
+        tok_type op2 = last_tok.type;
+        // note: 不能get(), op2留给下个parse消耗
+        if (prec(op1) > prec(op2))
+            return parseBinTail(::mkBinary(op1, std::move(prehead), std::move(head)));
+        else
+            return ::mkBinary(op1, std::move(prehead), parseBinTail(std::move(head)));
+    }
+
+    std::unique_ptr<ExprAST> parseUnary() {
+        // assert last_tok.type == not_
+        get();
+        std::unique_ptr<ExprAST> x;
+        if (last_tok.type == paren_begin) {
+            x = parseParen();
+        } else {
+            verify(last_tok.type == proto);
+            x = parseProto();
+        }
+        return std::make_unique<UnaryAST>(std::move(x));
+    }
+
+    std::unique_ptr<ExprAST> parseParen() {
+        // assert last_tok.type == paren_begin
+        get();
+        auto res = parseExpr();
+        verify(last_tok.type == paren_end);
+        get();
+        return res;
+    }
+
+    // value parse
+
+    std::unique_ptr<ExprAST> parseProto() {
+        // assert last_tok.type == proto
+        auto& name = mb::static_variant_cast<QString&>(last_tok.value);
+        auto ret = ::mkPrt_match(name, ValidProtos{});
+        get();
+        return ret;
+    }
+
+    std::unique_ptr<ExprAST> parseProtoField() {
+        auto& pf = mb::static_variant_cast<std::pair<QString, QString>&>(last_tok.value);
+        auto& proto_str = pf.first;
+        auto& field_str = pf.second;
+        get();
+        auto ret = parsePF_match(proto_str, field_str, ValidProtos{});
+        get();
+        return ret;
+    }
+};
+
+#undef FIELD_CASE
+#undef PROTO_MATCH
+#undef PROTO_CASE
