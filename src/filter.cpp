@@ -506,14 +506,14 @@ private:
 
     std::unique_ptr<ExprAST> parseProto() {
         // assert last_tok.type == proto
-        auto& name = mb::static_variant_cast<QString&>(last_tok.value);
+        auto& name = last_tok.value.get_unchecked<QString>();
         auto ret = ::mkPrt_match(name, ValidProtos{});
         get();
         return ret;
     }
 
     std::unique_ptr<ExprAST> parseProtoField() {
-        auto& pf = mb::static_variant_cast<std::pair<QString, QString>&>(last_tok.value);
+        auto& pf = last_tok.value.get_unchecked<std::pair<QString, QString>>();
         auto& proto_str = pf.first;
         auto& field_str = pf.second;
         get();
