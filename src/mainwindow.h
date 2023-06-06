@@ -20,7 +20,9 @@ public:
 
 private:
     Ui::MainWindow* ui;
+    // todo 解决析构问题
     // 挂到qt对象树上，不用析构
+    // 因为无法在qtdesign里往statusbar添加部件所以必须在这添加。。
     class QLabel* textEdit;
     uint device_choose;
     bool stop;
@@ -30,6 +32,7 @@ private:
 
     QString fileName;
     device_list devices;
+    // 延迟初始化，相当于optional，所以用unique_ptr而不是值
     std::unique_ptr<device> dev;
     ProxyVector packets;
     // 挂到qt对象树上，不用析构
@@ -39,32 +42,26 @@ private:
     Count count;
     std::vector<Count_time> count_t;
 
-    std::vector<int> show_result;
+    std::vector<uint> shows;
 
     static constexpr size_t MAXSHOW = 100;
+    static constexpr size_t SAMPLE_INTERVAL = 300; // 单位：秒
 
     //i为packets中packet的下标
-    void addRow(const pack& x);
-    void showRow(size_t i);
-    void showRow(size_t i, const pack& x);
+    void pushRow(size_t i);
+    void pushRow(size_t i, const pack& x);
     void showDetails(int i);
-    QString catch_filt;
-    QString show_filt;
-    bool catch_f;
-    bool show_f;
 
-    // /*---------------------显示过滤器的一些声明-------------------*/
-    // bool is_a_sentence(const QString& fil);
-    // bool is_a_filter(const std::string& filter);
-    // std::vector<int> catched_filter(const std::string& s);
-    // std::vector<int> analyse_filter(const std::string& filter);
-    // std::vector<std::string> split_and(const std::string& filter);
-    // std::vector<std::string> split_or(const std::string& filter);
-    // std::vector<int> complex_or(std::vector<std::vector<int>>& temp);
-    // std::vector<int> complex_and(std::vector<std::vector<int>>& temp);
-    // std::vector<int> fixed_result(const ProxyIntVector& temp);
-    // /*------------------------------------------------------------*/
+    void setMaxPage(uint m);
+
+    // 更新包的统计数据
+    void updStat(size_t idx, const pack& x);
+
+    // QString catch_filt;
+    // QString show_filt;
+    // bool catch_f;
+    // bool show_f;
 
     void timerUpdate();
-    void countUpdate(QDateTime t);
+    void mkSample(QDateTime t);
 };

@@ -9,56 +9,20 @@
 //
 
 // 已有记录，不用更新统计量
-void MainWindow::showRow(size_t i) {
-    showRow(i, this->packets[i]);
+// i是packets的索引，从0开始
+void MainWindow::pushRow(size_t i) {
+    pushRow(i, this->packets[i]);
 }
 
-// 字符串化，界面添加新记录，要更新统计量
-void MainWindow::addRow(const pack& x) {
-    size_t idx = this->packets.size();
-    auto& packet = x.parsed;
-
-    packet.traverse([this, idx, depth = 0]<typename T>(const T& proto) mutable {
-        ++depth;
-        if constexpr (std::is_same_v<T, eth_header>) {
-            ; //none
-        } else if constexpr (std::is_same_v<T, arp_packet>) {
-            this->count.arp_c.push_back(idx);
-        } else if constexpr (std::is_same_v<T, ipv4_header>) {
-            this->count.ipv4_c.push_back(idx);
-        } else if constexpr (std::is_same_v<T, ipv6_header>) {
-            this->count.ipv6_c.push_back(idx);
-        } else if constexpr (std::is_same_v<T, icmp_packet>) {
-            this->count.icmp_c.push_back(idx);
-        } else if constexpr (std::is_same_v<T, tcp_header>) {
-            this->count.tcp_c.push_back(idx);
-        } else if constexpr (std::is_same_v<T, udp_header>) {
-            this->count.udp_c.push_back(idx);
-        } else if constexpr (std::is_same_v<T, dns_packet>) {
-            this->count.dns_c.push_back(idx);
-        } else {
-            static_assert(std::is_same_v<T, blob>);
-            if (depth == 2)
-                this->count.other_c.push_back(idx);
-            else if (depth == 3)
-                this->count.other_header_c.push_back(idx);
-            else if (depth == 4)
-                this->count.other_app_c.push_back(idx);
-        }
-    });
-
-    this->showRow(idx, x);
-}
-
-// 界面新增记录展示的核心函数
-// 解析结果传给qt界面
+// 界面新增记录展示的核心函数，解析结果传给qt界面
 // 包必须和序号一起传过来，因为包没与序号关联。。即无状态。。
-void MainWindow::showRow(size_t i, const pack& x) {
+// i是packets的索引，从0开始
+void MainWindow::pushRow(size_t i, const pack& x) {
     //超过显示最大数目
     if (this->model->rowCount() >= this->MAXSHOW) {
         this->model->removeOneRow();
     }
-    auto [src, dst] = [&]() -> std::pair<QString, QString> {
+    auto [src, dst] = [&x]() -> std::pair<QString, QString> {
         if (auto p = x.parsed.get<ipv4_header>()) {
             return {p->srcip(), p->dstip()};
         } else if (auto p = x.parsed.get<ipv6_header>()) {
@@ -75,14 +39,12 @@ void MainWindow::showRow(size_t i, const pack& x) {
         src,
         dst,
         x.raw_len(),
-        //
     });
 }
 
 void MainWindow::showDetails(int i) {
     //     assert (i < this->packets.size())
     auto& pk = this->packets[i];
-    auto& pkt = pk.parsed;
 
     ui->data->setText(pk.raw_str());
 
@@ -96,7 +58,7 @@ void MainWindow::showDetails(int i) {
         QStandardItem* info = new QStandardItem("时间: " + pk.time_str() + " 总长度: " + pk.raw_len() + " 字节");
         model->appendRow(info);
     }
-    pkt.traverse([model]<typename T>(const T& p) {
+    pk.parsed.traverse([model]<typename T>(const T& p) {
         if constexpr (std::is_same_v<T, eth_header>) {
             QStandardItem* eth_d = new QStandardItem("以太头");
             model->appendRow(eth_d);
@@ -211,8 +173,8 @@ MainWindow::MainWindow(QWidget* parent)
       textEdit(new QLabel(this)),
       time_record(QDateTime::fromSecsSinceEpoch(0)) {
     ui->setupUi(this);
-
     this->statusBar()->addWidget(textEdit);
+
     // 显示网卡
     for (auto& item: devices.to_strings()) {
         ui->comboBox->addItem(item);
@@ -240,10 +202,10 @@ MainWindow::MainWindow(QWidget* parent)
         this->showDetails(id.toInt() - 1);
     });
 
-    this->catch_filt = "";
-    this->show_filt = "";
-    this->catch_f = false;
-    this->show_f = false;
+    // this->catch_filt = "";
+    // this->show_filt = "";
+    // this->catch_f = false;
+    // this->show_f = false;
 
     // 布局变化
     // connect(ui->radioButton, &QRadioButton::toggled, this, [this](bool checked) {
@@ -290,7 +252,7 @@ MainWindow::MainWindow(QWidget* parent)
     //                 // 显示最后MAXSHOW个包
     //                 if (this->packets.size() > 0) {
     //                     for (int i = std::max((int)this->packets.size() - this->MAXSHOW, 0); i < this->packets.size(); i++) {
-    //                         showRow(i);
+    //                         pushRow(i);
     //                     }
     //                     int max = this->packets.size() / this->MAXSHOW;
     //                     max += this->packets.size() % this->MAXSHOW ? 1 : 0;
@@ -307,7 +269,7 @@ MainWindow::MainWindow(QWidget* parent)
     //             //     show_result = catched_filter(this->show_filt.toStdString());
     //             //     if (show_result.size() != 0) {
     //             //         for (int i = 0; i < show_result.size(); i++)
-    //             //             showRow(show_result[i]);
+    //             //             pushRow(show_result[i]);
     //             //         int max = show_result.size() / this->MAXSHOW;
     //             //         max += show_result.size() % this->MAXSHOW ? 1 : 0;
 
@@ -405,21 +367,21 @@ MainWindow::MainWindow(QWidget* parent)
         // if (!this->stop || this->hadClear)
         //     return;
         this->model->clear();
-        // note: custom model不用重新setHorizontalHeaderLabels
+        // custom model不用重新setHorizontalHeaderLabels
         // for (int i = (ui->spinBox->value() - 1) * this->MAXSHOW; i < ui->spinBox->value() * this->MAXSHOW; i++) {
         //     if (i < this->packets.size()) {
         //         if (this->show_f) {
         //             if (i < show_result.size())
-        //                 this->showRow(show_result[i]);
+        //                 this->pushRow(show_result[i]);
         //         } else {
-        //             this->showRow(i);
+        //             this->pushRow(i);
         //         }
         //     }
         // }
         size_t begin = (ui->spinBox->value() - 1) * this->MAXSHOW;
         size_t end = std::min(ui->spinBox->value() * this->MAXSHOW, packets.size());
         for (size_t i = begin; i < end; ++i) {
-            this->showRow(i);
+            this->pushRow(i);
         }
     });
 
@@ -438,7 +400,7 @@ MainWindow::MainWindow(QWidget* parent)
             this->time_record = QDateTime::fromSecsSinceEpoch(0);
             this->packets.clear();
             this->model->clear();
-            // note: custom model不用重新setHorizontalHeaderLabels
+            // custom model不用重新setHorizontalHeaderLabels
 
             this->count.clear();
             this->count_t.clear();
@@ -453,8 +415,48 @@ MainWindow::MainWindow(QWidget* parent)
     });
 }
 
-// 定期抽样统计数据
-void MainWindow::countUpdate(QDateTime t) {
+// idx是数组索引，从0开始
+void MainWindow::updStat(size_t idx, const pack& x) {
+    // 更新count
+    x.parsed.traverse([this, idx, depth = 0]<typename T>(const T& proto) mutable {
+        ++depth;
+        if constexpr (std::is_same_v<T, eth_header>) {
+            ; //none
+        } else if constexpr (std::is_same_v<T, arp_packet>) {
+            this->count.arp_c.push_back(idx);
+        } else if constexpr (std::is_same_v<T, ipv4_header>) {
+            this->count.ipv4_c.push_back(idx);
+        } else if constexpr (std::is_same_v<T, ipv6_header>) {
+            this->count.ipv6_c.push_back(idx);
+        } else if constexpr (std::is_same_v<T, icmp_packet>) {
+            this->count.icmp_c.push_back(idx);
+        } else if constexpr (std::is_same_v<T, tcp_header>) {
+            this->count.tcp_c.push_back(idx);
+        } else if constexpr (std::is_same_v<T, udp_header>) {
+            this->count.udp_c.push_back(idx);
+        } else if constexpr (std::is_same_v<T, dns_packet>) {
+            this->count.dns_c.push_back(idx);
+        } else {
+            static_assert(std::is_same_v<T, blob>);
+            if (depth == 2)
+                this->count.other_c.push_back(idx);
+            else if (depth == 3)
+                this->count.other_header_c.push_back(idx);
+            else if (depth == 4)
+                this->count.other_app_c.push_back(idx);
+        }
+    });
+
+    // 更新count_t
+    auto& t = x.time;
+    if (this->time_record.addSecs(SAMPLE_INTERVAL) < t) {
+        mkSample(t);
+        this->time_record = t;
+    }
+}
+
+// 对统计数据抽个样，标记为在t时刻的数据
+void MainWindow::mkSample(QDateTime t) {
     Count_time c_t;
     c_t.time = std::move(t);
     c_t.arp = this->count.arp_c.size();
@@ -468,49 +470,36 @@ void MainWindow::countUpdate(QDateTime t) {
     c_t.dns = this->count.dns_c.size();
     c_t.other_a = this->count.other_app_c.size();
 
-    this->count_t.push_back(c_t);
+    this->count_t.push_back(std::move(c_t));
 }
 
 void MainWindow::timerUpdate() {
     auto tmp_packs = this->dev->get_all();
     if (tmp_packs.empty()) return;
 
-    for (auto& pkt: tmp_packs) { //处理info...
-        auto& t = pkt.time;
-        if (time_record.addSecs(300) < t) {
-            countUpdate(t);
-            time_record = t;
-        }
+    for (auto& pkt: tmp_packs) { // 处理info...
+        updStat(packets.size(), pkt);
 
-        int max = int((this->packets.size() + 1) / this->MAXSHOW);
-        max += (this->packets.size() + 1) % this->MAXSHOW ? 1 : 0;
+        uint oldmax = ui->spinBox->maximum();
 
-        if (ui->radioButton_2->isChecked()) { //trace
-            if (ui->spinBox->value() == ui->spinBox->maximum()) {
-                // todo 整理重复代码
-                ui->spinBox->setMaximum(max);
-                ui->label_2->setText(QString::asprintf("共%d页", max));
+        // 更新分页数目=上取整(所有捕获/单位页展示)。上取整公式有-1，新增此包后size+1，抵消为0
+        uint newmax = uint((this->packets.size() + this->MAXSHOW) / this->MAXSHOW);
+        setMaxPage(newmax); // setmaxpage必须在setvalue前
 
-                ui->spinBox->setValue(max);
-
-                addRow(pkt);
-            } else {
-                ui->spinBox->setMaximum(max); // note: 因为if条件用到spinbox.max，所以绝对不要提出if块
-                ui->label_2->setText(QString::asprintf("共%d页", max));
-            }
-        } else { //not trace
-            ui->spinBox->setMaximum(max);
-            ui->label_2->setText(QString::asprintf("共%d页", max));
-            if (ui->spinBox->value() == ui->spinBox->maximum()) {
-                addRow(pkt);
+        if (ui->spinBox->value() == oldmax) {
+            if (ui->radioButton_2->isChecked()) { // trace
+                ui->spinBox->setValue(newmax);    // 设置value不会有动作，只有按钮才会触发
+                pushRow(packets.size(), pkt);
+            } else { // not trace
+                pushRow(packets.size(), pkt);
             }
         }
 
         this->packets.push_back(std::move(pkt));
     }
 
-    if (ui->radioButton_2->isChecked()) { //trace
-        if (ui->spinBox->value() == ui->spinBox->maximum())
+    if (ui->spinBox->value() == ui->spinBox->maximum()) {
+        if (ui->radioButton_2->isChecked()) // trace
             ui->tableView->scrollToBottom();
     }
 
@@ -519,6 +508,11 @@ void MainWindow::timerUpdate() {
         this->count.ipv4_c.size(), this->count.ipv6_c.size(), this->count.arp_c.size(), this->count.other_c.size(),
         this->count.icmp_c.size(), this->count.tcp_c.size(), this->count.udp_c.size(), this->count.other_header_c.size(),
         this->count.dns_c.size(), this->count.other_app_c.size()));
+}
+
+void MainWindow::setMaxPage(uint m) {
+    ui->spinBox->setMaximum(m);
+    ui->label_2->setText(QString::asprintf("共%u页", m));
 }
 
 MainWindow::~MainWindow() {

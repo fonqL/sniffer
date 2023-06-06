@@ -1,4 +1,4 @@
-// #include "mainwindow.h"
+#include "mainwindow.h"
 #include "packet.h"
 #include <QString>
 #include <WS2tcpip.h>
@@ -14,7 +14,7 @@ namespace mb = mapbox::util;
 //===----------------------------------------------------------------------===//
 
 void verify(bool cond) {
-    if (!cond) throw 0; //note: 因为错误也很常见所以不加unlikely了
+    if (!cond) throw 0; //因为错误也很常见所以不加unlikely了
 }
 
 template<bool C, class A, class B>
@@ -310,6 +310,7 @@ std::unique_ptr<ExprAST> mkPF_match(tok_type op, Getter<T, R>* func, R&& val, to
     verify((mkPF_case<T, R, ts>(op, func, std::move(val), ret) || ...));
     return ret;
 }
+
 //===----------------------------------------------------------------------===//
 // 语法解析
 //===----------------------------------------------------------------------===//
@@ -473,7 +474,7 @@ private:
         get();
         auto head = parseBinHead();
         tok_type op2 = last_tok.type;
-        // note: 不能get(), op2留给下个parse消耗
+        // 不能get(), op2留给下个parse消耗
         if (prec(op1) > prec(op2))
             return parseBinTail(::mkBinary(op1, std::move(prehead), std::move(head)));
         else
@@ -526,3 +527,5 @@ private:
 #undef FIELD_CASE
 #undef PROTO_MATCH
 #undef PROTO_CASE
+
+//

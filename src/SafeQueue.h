@@ -40,7 +40,7 @@ public:
     bool push(T&& newdata, std::chrono::seconds sec) {
         {
             std::unique_lock lock{mtx};
-            cv.wait_for(lock, sec, [&]() { return size != CAPACITY; });
+            cv.wait_for(lock, sec, [this]() { return size != CAPACITY; });
             if (size == CAPACITY) return false;
             circleBuffer[tail] = std::move(newdata);
             tail++;
@@ -54,9 +54,7 @@ public:
         T ret;
         {
             std::unique_lock lock{mtx};
-            cv.wait(lock, [&]() {
-                return size != 0;
-            });
+            cv.wait(lock, [this]() { return size != 0; });
             ret = std::move(circleBuffer[header].value());
             circleBuffer[header].reset();
             header++;
