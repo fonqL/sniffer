@@ -3,6 +3,7 @@
 #include "ProxyVector.h"
 #include "analysis.h"
 #include "device.h"
+#include "filter.h"
 #include <QMainWindow>
 
 QT_BEGIN_NAMESPACE
@@ -25,9 +26,7 @@ private:
     // 因为无法在qtdesign里往statusbar添加部件所以必须在这添加。。
     class QLabel* textEdit;
     uint device_choose;
-    bool stop;
-    bool hadClear;
-    bool hadDetails;
+    QTimer* timer;
     QDateTime time_record;
 
     QString fileName;
@@ -38,30 +37,37 @@ private:
     // 挂到qt对象树上，不用析构
     class CustomItemModel* model;
     // 挂到qt对象树上，不用析构
-    class QStandardItemModel* t_model;
+    class QStandardItemModel* tr_model;
     Count count;
     std::vector<Count_time> count_t;
 
-    std::vector<uint> shows;
+    std::vector<size_t> shows;
 
     static constexpr size_t MAXSHOW = 100;
     static constexpr size_t SAMPLE_INTERVAL = 300; // 单位：秒
 
-    //i为packets中packet的下标
+    //i均为底层packets中的下标
     void pushRow(size_t i);
     void pushRow(size_t i, const pack& x);
     void showDetails(int i);
 
+    void handleShow(const pack& x);
+
     void setMaxPage(uint m);
 
-    // 更新包的统计数据
+    // 更新包的统计数据，idx也是底层packets下标
     void updStat(size_t idx, const pack& x);
 
-    // QString catch_filt;
-    // QString show_filt;
-    // bool catch_f;
-    // bool show_f;
+    QString catch_filter;
+    std::unique_ptr<ExprAST> show_filter;
 
-    void timerUpdate();
-    void mkSample(QDateTime t);
+    void genSample(QDateTime t);
+
+    void jump();
+
+    void startCapture();
+    void stopCapture();
+    void capture();
+
+    void reset();
 };

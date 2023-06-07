@@ -2,7 +2,6 @@
 
 #include "SafeQueue.h"
 #include "packet.h"
-#include <QDateTime>
 #include <QString>
 #include <pcap.h>
 #include <thread>

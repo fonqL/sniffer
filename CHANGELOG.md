@@ -19,6 +19,8 @@ sqlite3_limit(db,SQLITE_LIMIT_LENGTH,size)也有优化，但是qt如果要用sql
 sqlite有without rowid。。看了看直接用rowid当主键就好了。without rowid用b树，而rowid用b*树(叶子结点存信息)。所以用rowid
 
 
-ProxyVector换页时，取 以i为中心前后LENGTH/2 的页
+~~ProxyVector换页时，取 以i为中心前后LENGTH/2 的页~~ 迭代时太浪费了，普通的以i向pagesize下取整为起点就好
 
 filter做好了！大成功！！
+
+适配filter

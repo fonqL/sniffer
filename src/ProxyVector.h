@@ -44,17 +44,12 @@ public:
 
     ~ProxyVector() { clear(); }
 
-    size_t size() const {
-        return sz;
-    }
+    size_t size() const { return sz; }
+    bool empty() const { return sz == 0; }
 
-    const pack&
-    at(size_t i) {
-        return (*this)[i];
-    }
-
-    const pack&
-    operator[](size_t i);
+    const pack& back() { return (*this)[sz - 1]; }
+    const pack& at(size_t i) { return (*this)[i]; }
+    const pack& operator[](size_t i);
 
     void push_back(pack&& x);
 

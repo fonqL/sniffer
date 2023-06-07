@@ -1,4 +1,4 @@
-#include "mainwindow.h"
+#include "filter.h"
 #include "packet.h"
 #include <QString>
 #include <WS2tcpip.h>
@@ -58,6 +58,7 @@ enum tok_type {
     ip6,
     proto,
     proto_field,
+    eos,
 };
 
 template<tok_type... ts>
@@ -157,7 +158,7 @@ public:
             QString ptc;
             do {
                 ptc += last_char;
-            } while (std::isalpha(get().unicode()));
+            } while (std::isalnum(get().unicode()));
 
             if (last_char == '.') {
                 QString field;
@@ -197,11 +198,13 @@ public:
             verify(get() == '&');
             get();
             return {and_, noinit};
-        } else {
-            verify(last_char == '|');
+        } else if (last_char == '|') {
             verify(get() == '|');
             get();
             return {or_, noinit};
+        } else {
+            verify(last_char == QChar::Null);
+            return {eos, noinit};
         }
     }
 };
@@ -209,12 +212,6 @@ public:
 //===----------------------------------------------------------------------===//
 // 抽象语法树
 //===----------------------------------------------------------------------===//
-
-// 抽象基类
-struct ExprAST {
-    virtual bool check(const packet&) = 0;
-    virtual ~ExprAST() = default;
-};
 
 // 两两bool表达式的组合
 template<tok_type Op>
@@ -315,6 +312,9 @@ std::unique_ptr<ExprAST> mkPF_match(tok_type op, Getter<T, R>* func, R&& val, to
 // 语法解析
 //===----------------------------------------------------------------------===//
 
+class parser {
+private:
+    //
 #define FIELD_CASE(field)                                        \
     {                                                            \
         static const QString field_name = #field;                \
@@ -334,8 +334,6 @@ std::unique_ptr<ExprAST> mkPF_match(tok_type op, Getter<T, R>* func, R&& val, to
 #define PROTO_CASE(proto) \
     else if constexpr (std::is_same_v<T, proto>)
 
-class parser {
-private:
     //===------------------------------------------------------------------===//
     // RL-类型依赖语法解析，需要this.lexer，所以必须是成员函数
     //===------------------------------------------------------------------===//
@@ -343,7 +341,6 @@ private:
     std::unique_ptr<ExprAST> parse_field(const QString& field_str) {
         auto op = last_tok.type;
         verify(op == eq || op == neq || op == le || op == lt || op == ge || op == gt);
-        get();
 
         PROTO_MATCH
         PROTO_CASE(eth_header) {
@@ -423,6 +420,10 @@ private:
         throw 0; // 没有找到field
     }
 
+#undef FIELD_CASE
+#undef PROTO_MATCH
+#undef PROTO_CASE
+
     template<class T>
     bool parsePF_case(const QString& proto_str, const QString& field_str, std::unique_ptr<ExprAST>& out) {
         if (proto_str == T::name) {
@@ -444,10 +445,15 @@ private:
     tok last_tok;
 
 public:
+    // scan可能异常，所以构造可能失败
     parser(const QString& s) : lex(s), last_tok(lex.scan()) {}
-    std::unique_ptr<ExprAST> parse() try {
-        return parseExpr();
-    } catch (...) { return nullptr; }
+
+    std::unique_ptr<ExprAST> parse() {
+        if (last_tok.type == eos) return std::make_unique<ExprAST>();
+        auto ret = parseExpr();
+        verify(last_tok.type == eos);
+        return std::move(ret);
+    }
 
 private:
     tok& get() { return last_tok = lex.scan(); }
@@ -514,18 +520,19 @@ private:
     }
 
     std::unique_ptr<ExprAST> parseProtoField() {
-        auto& pf = last_tok.value.get_unchecked<std::pair<QString, QString>>();
-        auto& proto_str = pf.first;
-        auto& field_str = pf.second;
+        auto [proto_str, field_str] = last_tok.value.get_unchecked<std::pair<QString, QString>>();
         get();
         auto ret = parsePF_match(proto_str, field_str, ValidProtos{});
+        // 这里需要get()，因为直接调用了scan_type，
+        // 既没刷新last_tok也没取得下一个token类型，在解析下个token前停止了
         get();
         return ret;
     }
 };
 
-#undef FIELD_CASE
-#undef PROTO_MATCH
-#undef PROTO_CASE
-
-//
+std::unique_ptr<ExprAST> compile(const QString& str) try {
+    // 构造可能异常
+    return parser{str}.parse();
+} catch (...) {
+    return nullptr;
+}

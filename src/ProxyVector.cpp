@@ -74,9 +74,8 @@ const pack& ProxyVector::operator[](size_t i) {
     if (i < cacheOffset || cacheOffset + readCache.size() <= i) {
         readCache.clear();
 
-        // 以i为中心，取出前后 LENGTH 个记录
-        cacheOffset = std::max(size_t(0), i - LENGTH / 2);
-        size_t cacheEnd = std::min(sz, cacheOffset + LENGTH / 2);
+        cacheOffset = i / LENGTH * LENGTH;
+        size_t cacheEnd = std::min(sz, cacheOffset + LENGTH);
 
         // 必须要读，因为不在写缓存里
         QSqlQuery query;

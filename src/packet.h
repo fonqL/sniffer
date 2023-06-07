@@ -205,7 +205,7 @@ public:
     QString highest_proto() const {
         auto x = reinterpret_cast<ltype*>(l_end)->first;
         if (x == typeid(blob)) {
-            x = reinterpret_cast<ltype*>(l_end + 1)->first;
+            x = (reinterpret_cast<ltype*>(l_end) + 1)->first;
         }
         if (x == typeid(eth_header))
             return "以太帧";

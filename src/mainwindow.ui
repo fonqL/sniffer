@@ -52,14 +52,7 @@
       <item row="1" column="1">
        <widget class="QLineEdit" name="lineEdit">
         <property name="placeholderText">
-         <string/>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string>捕获过滤</string>
+         <string>启动捕获时应用</string>
         </property>
        </widget>
       </item>
@@ -73,7 +66,14 @@
       <item row="2" column="1">
        <widget class="QLineEdit" name="lineEdit_2">
         <property name="placeholderText">
-         <string>按回车键确认</string>
+         <string>按回车键确认应用</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>捕获过滤</string>
         </property>
        </widget>
       </item>
@@ -81,21 +81,11 @@
     </item>
     <item>
      <layout class="QGridLayout" name="gridLayout">
-      <item row="0" column="0">
-       <widget class="QPushButton" name="pushButton_2">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="text">
-         <string>开始</string>
-        </property>
-       </widget>
-      </item>
       <item row="0" column="1">
        <widget class="QPushButton" name="pushButton">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="sizePolicy">
          <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
           <horstretch>0</horstretch>
@@ -107,8 +97,8 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="2">
-       <widget class="QPushButton" name="pushButton_9">
+      <item row="0" column="0">
+       <widget class="QPushButton" name="pushButton_2">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
           <horstretch>0</horstretch>
@@ -116,7 +106,7 @@
          </sizepolicy>
         </property>
         <property name="text">
-         <string>打开</string>
+         <string>开始</string>
         </property>
        </widget>
       </item>
@@ -133,6 +123,19 @@
         </property>
        </widget>
       </item>
+      <item row="0" column="2">
+       <widget class="QPushButton" name="pushButton_9">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>打开</string>
+        </property>
+       </widget>
+      </item>
       <item row="0" column="4">
        <widget class="QPushButton" name="pushButton_6">
         <property name="sizePolicy">
@@ -143,19 +146,6 @@
         </property>
         <property name="text">
          <string>显示统计图</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="5">
-       <widget class="QPushButton" name="pushButton_5">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="text">
-         <string>清空</string>
         </property>
        </widget>
       </item>
@@ -172,7 +162,11 @@
          <number>0</number>
         </property>
         <item>
-         <widget class="QTableView" name="tableView"/>
+         <widget class="QTableView" name="tableView">
+          <attribute name="verticalHeaderVisible">
+           <bool>false</bool>
+          </attribute>
+         </widget>
         </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_4">
