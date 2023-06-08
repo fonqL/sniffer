@@ -177,7 +177,6 @@ MainWindow::MainWindow(QWidget* parent)
     ui->setupUi(this);
     ui->tableView->setModel(this->model);
     ui->tableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
-    ui->tableView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     ui->tableView->horizontalHeader()->setStretchLastSection(true);
     ui->treeView->setModel(tr_model);
     this->statusBar()->addWidget(textEdit);
