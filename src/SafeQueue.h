@@ -91,6 +91,7 @@ public:
                 circleBuffer[header].reset();
                 header++;
                 ret_sz--;
+                size--;
             }
         }
         cv.notify_one();
