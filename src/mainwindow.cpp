@@ -405,7 +405,7 @@ void MainWindow::handleShow(const pack& pkt) {
     uint newmax = uint((this->shows.size() + MAXSHOW) / MAXSHOW);
     setMaxPage(newmax); // setmaxpage必须在setvalue前
 
-    if (ui->spinBox->value() == oldmax) {
+    if (ui->spinBox->value() == oldmax || oldmax == 0) {
         if (ui->radioButton_2->isChecked()) { // trace
             ui->spinBox->setValue(newmax);    // 设置value不会有动作，只有按钮才会触发
             pushRow(packets.size(), pkt);
@@ -416,7 +416,9 @@ void MainWindow::handleShow(const pack& pkt) {
 }
 
 void MainWindow::capture() {
-    auto tmp_packs = this->dev->get_all();
+    // 随便定个数字，即保证响应性又不至于丧失批量处理的优势
+    // 其实是在担心setText太慢。。
+    auto tmp_packs = this->dev->get_some(200);
     if (tmp_packs.empty()) return;
 
     for (auto& pkt: tmp_packs) { // 处理info...

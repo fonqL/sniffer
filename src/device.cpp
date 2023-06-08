@@ -104,8 +104,8 @@ std::optional<pack> device::try_get() {
     return queue.tryPop();
 }
 
-std::vector<pack> device::get_all() {
-    return queue.popAll();
+std::vector<pack> device::get_some(uint n) {
+    return queue.popSome(n);
 }
 
 void device::start_capture() {
@@ -124,8 +124,9 @@ void device::start_capture() {
                 }
 
                 pack res = {
+
                     QDateTime::fromSecsSinceEpoch(header->ts.tv_sec)
-                        + std::chrono::milliseconds{header->ts.tv_usec / 1000},
+                        .addMSecs(header->ts.tv_usec / 1000), // tv_usec是微秒
                     {data, data + header->len},
                     std::move(pkt)
                 };

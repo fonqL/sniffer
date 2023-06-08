@@ -268,7 +268,7 @@ struct pack {
     std::vector<uint8_t> raw;
     packet parsed;
 
-    QString time_str() const { return time.toString("MM/dd hh:mm:ss"); }
+    QString time_str() const { return time.toString("MM/dd hh:mm:ss.zzz"); }
     QString raw_str() const {
         std::vector<char> tmpbuf(raw.size() * 5, '\0');
         int offset = 0;

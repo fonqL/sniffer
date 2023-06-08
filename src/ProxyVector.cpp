@@ -2,7 +2,7 @@
 #include <QDataStream>
 //
 using namespace std::chrono_literals;
-static constexpr size_t LENGTH = 8000;
+static constexpr size_t LENGTH = 7301;
 static constexpr std::chrono::seconds INTERVAL = 5s;
 
 //

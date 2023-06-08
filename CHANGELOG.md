@@ -24,3 +24,11 @@ sqlite有without rowid。。看了看直接用rowid当主键就好了。without 
 filter做好了！大成功！！
 
 适配filter
+
+常数互质一下，以免碰撞导致峰值耗时突然增高
+
+## 性能优化
+
+火焰图发现QDateTime + std::chrono::milliseconds 慢的要死。。居然跟parse_packet一个速度。。
+parse_packet(parse_datalink)有一半慢在packet.add上，完全是因为扩容时的内存分配与回收。。离谱，暂时不理
+

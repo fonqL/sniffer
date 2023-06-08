@@ -70,7 +70,7 @@ public:
     //不会阻塞，可能失败，失败时vec.empty() == true
     std::optional<pack> try_get();
 
-    std::vector<pack> get_all();
+    std::vector<pack> get_some(uint n);
 
     void start_capture();
 };

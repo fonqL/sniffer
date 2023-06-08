@@ -43,7 +43,7 @@ private:
 
     std::vector<size_t> shows;
 
-    static constexpr size_t MAXSHOW = 100;
+    static constexpr size_t MAXSHOW = 1000;
     static constexpr size_t SAMPLE_INTERVAL = 300; // 单位：秒
 
     //i均为底层packets中的下标

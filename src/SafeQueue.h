@@ -79,16 +79,18 @@ public:
         return ret;
     }
 
-    std::vector<T> popAll() {
+    // 有点扭曲但也不太扭曲的接口
+    std::vector<T> popSome(unsigned n) {
+        capacity_t ret_sz = std::min((capacity_t)n, size);
         std::vector<T> ret;
         {
             std::scoped_lock lock{mtx};
-            ret.reserve(size);
-            while (size > 0) {
+            ret.reserve(ret_sz);
+            while (ret_sz > 0) {
                 ret.emplace_back(std::move(circleBuffer[header].value()));
                 circleBuffer[header].reset();
                 header++;
-                size--;
+                ret_sz--;
             }
         }
         cv.notify_one();
