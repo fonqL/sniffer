@@ -319,7 +319,7 @@ private:
     {                                                            \
         static const QString field_name = #field;                \
         if (field_str == field_name) {                           \
-            using rawR = decltype(((T*)nullptr)->field);         \
+            using rawR = decltype(std::declval<T>().field);      \
             using R = if_t<std::is_enum_v<rawR>, uint, rawR>;    \
             using ParseR = if_t<std::is_integral_v<R>, uint, R>; \
             return ::mkPF_match<T, R>(                           \

@@ -48,6 +48,7 @@ void MainWindow::showDetails(int i) {
 
     ui->data->setText(pk.raw_str());
 
+    tr_model->clear();
     tr_model->setHorizontalHeaderLabels({QString::asprintf("第%d个包", i + 1)});
 
     {
