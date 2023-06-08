@@ -64,6 +64,7 @@ private:
     void genSample(QDateTime t);
 
     void jump();
+    void applyShowFilter();
 
     void startCapture();
     void stopCapture();

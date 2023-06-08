@@ -156,7 +156,6 @@ void MainWindow::showDetails(int i) {
             }
         } else {
             static_assert(std::is_same_v<T, blob>);
-            // todo blob?
         }
     });
 }
@@ -212,26 +211,7 @@ MainWindow::MainWindow(QWidget* parent)
     });
 
     // 应用显示过滤
-    // 得益于单线程，这里任意操作都不会出冲突
-    connect(ui->lineEdit_2, &QLineEdit::returnPressed, [this] {
-        auto res = compile(ui->lineEdit_2->text());
-        if (res == nullptr) return;
-        show_filter = std::move(res);
-        ui->lineEdit_2->setStyleSheet("background-color:rgba(255,255,255,255)");
-        this->model->clear();
-        this->shows.clear();
-        for (size_t i = 0; i < packets.size(); ++i) {
-            if (show_filter->check(packets[i].parsed))
-                this->shows.push_back(i);
-        }
-        uint newmax = uint((shows.size() + MAXSHOW - 1) / MAXSHOW);
-        setMaxPage(newmax);
-        if (shows.empty())
-            return;
-        ui->spinBox->setValue(newmax);
-        jump();
-        ui->tableView->scrollToBottom();
-    });
+    connect(ui->lineEdit_2, &QLineEdit::returnPressed, this, &MainWindow::applyShowFilter);
 
     //保存 fq
     connect(ui->pushButton_8, &QPushButton::clicked, this, [this]() {
@@ -270,17 +250,37 @@ MainWindow::MainWindow(QWidget* parent)
     });
 }
 
+// 得益于单线程，这里任意操作都不会出冲突
+void MainWindow::applyShowFilter() {
+    auto res = compile(ui->lineEdit_2->text());
+    if (res == nullptr) return;
+    show_filter = std::move(res);
+    ui->lineEdit_2->setStyleSheet("background-color:rgba(255,255,255,255)");
+    this->model->clear();
+    this->shows.clear();
+    for (size_t i = 0; i < packets.size(); ++i) {
+        if (show_filter->check(packets[i].parsed))
+            this->shows.push_back(i);
+    }
+    uint newmax = uint((shows.size() + MAXSHOW - 1) / MAXSHOW);
+    setMaxPage(newmax);
+    if (shows.empty())
+        return;
+    ui->spinBox->setValue(newmax);
+    jump();
+    ui->tableView->scrollToBottom();
+}
+
 void MainWindow::jump() {
     this->model->clear();
     // custom model不用重新setHorizontalHeaderLabels
     size_t begin = (ui->spinBox->value() - 1) * MAXSHOW;
-    size_t end = std::min(ui->spinBox->value() * MAXSHOW, packets.size());
+    size_t end = std::min(ui->spinBox->value() * MAXSHOW, shows.size());
     for (size_t i = begin; i < end; ++i) {
         this->pushRow(shows[i]);
     }
 }
 
-// todo 检查shows是否忘记出现
 void MainWindow::reset() {
     this->time_record = QDateTime::fromSecsSinceEpoch(0);
     this->shows.clear();
@@ -333,7 +333,7 @@ void MainWindow::stopCapture() {
     capture();
     if (!packets.empty())
         genSample(packets.back().time);
-    int max = int((this->packets.size() + MAXSHOW - 1) / MAXSHOW);
+    int max = int((this->shows.size() + MAXSHOW - 1) / MAXSHOW);
     setMaxPage(max);
 }
 
@@ -401,7 +401,7 @@ void MainWindow::handleShow(const pack& pkt) {
     uint oldmax = ui->spinBox->maximum();
 
     // 更新分页数目=上取整(所有捕获/单位页展示)。上取整公式有-1，新增此包后size+1，抵消为0
-    uint newmax = uint((this->packets.size() + MAXSHOW) / MAXSHOW);
+    uint newmax = uint((this->shows.size() + MAXSHOW) / MAXSHOW);
     setMaxPage(newmax); // setmaxpage必须在setvalue前
 
     if (ui->spinBox->value() == oldmax) {

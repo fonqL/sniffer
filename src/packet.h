@@ -208,7 +208,7 @@ public:
             x = (reinterpret_cast<ltype*>(l_end) + 1)->first;
         }
         if (x == typeid(eth_header))
-            return "以太帧";
+            return "Eth";
         else if (x == typeid(arp_packet))
             return "ARP";
         else if (x == typeid(ipv4_header))
@@ -277,9 +277,9 @@ struct pack {
             if ((i + 1) % 16 == 0)
                 tmpbuf[offset++] = '\n';
             else if ((i + 1) % 8 == 0)
-                offset += sprintf(tmpbuf.data() + offset, "   ");
+                offset += sprintf(tmpbuf.data() + offset, "  ");
         }
-        return QString::fromLocal8Bit(tmpbuf.data(), offset);
+        return QString::fromLatin1(tmpbuf.data(), offset);
     }
     QString raw_len() const {
         return QString::number(raw.size());

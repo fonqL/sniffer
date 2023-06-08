@@ -69,7 +69,6 @@ const pack& ProxyVector::operator[](size_t i) {
         return packets[i - writeOffset];
     }
 
-    // todo 检查readCache和packets有无混用
     // readCache需要换页
     if (i < cacheOffset || cacheOffset + readCache.size() <= i) {
         readCache.clear();
@@ -96,6 +95,7 @@ const pack& ProxyVector::operator[](size_t i) {
 
 void ProxyVector::clear() {
     exec("DELETE FROM packets");
+    readCache.clear();
     packets.clear();
     cacheOffset = 0;
     sz = 0;

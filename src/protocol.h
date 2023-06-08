@@ -33,14 +33,6 @@ struct blob {
     const uint8_t* data() const {
         return reinterpret_cast<const uint8_t*>(this + 1);
     };
-    // todo
-    // QString data_str() const {
-    //     QString ret;
-    //     ret.resize(len * 2);
-    //     for (auto begin = data(); begin < data() + len; begin++) {
-    //         sprintf();
-    //     }
-    // }
 };
 
 using MacAddr = std::array<uint8_t, 6>;
@@ -104,17 +96,15 @@ struct arp_packet {
     MacAddr dst_mac;
     IPv4Addr dst_ip;
 
-    // todo 有优化的空间（脑子被门夹了吗怎么是fromstdstring
     QString srcip() const {
-        char buf1[20] = {0};
-        inet_ntop(AF_INET, src_ip.data(), buf1, sizeof(buf1));
-        return QString::fromStdString(buf1);
+        char buf[20] = {0};
+        inet_ntop(AF_INET, src_ip.data(), buf, sizeof(buf));
+        return QString::fromLatin1(buf, strlen(buf));
     }
-    // todo 有优化的空间（脑子被门夹了吗怎么是fromstdstring
     QString dstip() const {
-        char buf1[20] = {0};
-        inet_ntop(AF_INET, dst_ip.data(), buf1, sizeof(buf1));
-        return QString::fromStdString(buf1);
+        char buf[20] = {0};
+        inet_ntop(AF_INET, dst_ip.data(), buf, sizeof(buf));
+        return QString::fromLatin1(buf, strlen(buf));
     }
     QString op_str() const {
         switch (op) {
@@ -160,17 +150,15 @@ struct ipv4_header_base {
     IPv4Addr src; //inet_ntop 转成字符串
     IPv4Addr dst;
 
-    // todo 有优化的空间（脑子被门夹了吗怎么是fromstdstring
     QString srcip() const {
-        char buf1[20] = {0};
-        inet_ntop(AF_INET, src.data(), buf1, sizeof(buf1));
-        return QString::fromStdString(buf1);
+        char buf[20] = {0};
+        inet_ntop(AF_INET, src.data(), buf, sizeof(buf));
+        return QString::fromLatin1(buf, strlen(buf));
     }
-    // todo 有优化的空间（脑子被门夹了吗怎么是fromstdstring
     QString dstip() const {
-        char buf1[20] = {0};
-        inet_ntop(AF_INET, dst.data(), buf1, sizeof(buf1));
-        return QString::fromStdString(buf1);
+        char buf[20] = {0};
+        inet_ntop(AF_INET, dst.data(), buf, sizeof(buf));
+        return QString::fromLatin1(buf, strlen(buf));
     }
     STR_DEC(len)
     QString headerlen_str() const { return QString::number(header_len * 4); }
@@ -207,17 +195,15 @@ struct ipv6_header {
     IPv6Addr src;
     IPv6Addr dst;
 
-    // todo 有优化的空间（脑子被门夹了吗怎么是fromstdstring
     QString srcip() const {
-        char buf1[50] = {0};
-        inet_ntop(AF_INET6, src.data(), buf1, sizeof(buf1));
-        return QString::fromStdString(buf1);
+        char buf[50] = {0};
+        inet_ntop(AF_INET6, src.data(), buf, sizeof(buf));
+        return QString::fromLatin1(buf, strlen(buf));
     }
-    // todo 有优化的空间（脑子被门夹了吗怎么是fromstdstring
     QString dstip() const {
-        char buf1[50] = {0};
-        inet_ntop(AF_INET6, dst.data(), buf1, sizeof(buf1));
-        return QString::fromStdString(buf1);
+        char buf[50] = {0};
+        inet_ntop(AF_INET6, dst.data(), buf, sizeof(buf));
+        return QString::fromLatin1(buf, strlen(buf));
     }
     STR_DEC(payload_len)
     STR_HEX(traffic_class, 2, hx)

@@ -40,7 +40,7 @@ device::device(const char* name, u_int netmask)
         pcap_close(src), throw std::runtime_error{"only for Ethernet networks."};
 
     // 打开备份文件，用于保存操作
-    const auto& tmp = DEFAULT_FILENAME.toLocal8Bit();
+    const auto& tmp = DEFAULT_FILENAME.toStdString();
     file = pcap_dump_open(src, tmp.data());
     [[unlikely]] if (file == nullptr) {
         char* msg = pcap_geterr(src);
@@ -170,10 +170,11 @@ std::vector<QString> device_list::to_strings() const {
     std::vector<QString> ret;
     for (auto* dev = header; dev != nullptr; dev = dev->next) {
         ret.push_back(
-            QString::asprintf("%s: <%s>",
+            QString::asprintf("%s",
                               dev->description ? dev->description //
-                                               : "Unknown",
-                              dev->name));
+                                               : "Unknown"
+                              /*, dev->name*/));
+        // dev->name是网卡id序列号, 不输出了吧太丑了
     }
     return ret;
 }
@@ -193,7 +194,7 @@ device open_file(const QString& file_name) {
 
     char ret_name[PCAP_BUF_SIZE];
     char errbuf[PCAP_ERRBUF_SIZE];
-    const QByteArray& arg_name = file_name.toLocal8Bit();
+    const auto& arg_name = file_name.toStdString();
 
     pcap_assert(
         pcap_createsrcstr(ret_name, PCAP_SRC_FILE, nullptr, nullptr, arg_name.data(), errbuf),
