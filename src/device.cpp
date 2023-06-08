@@ -104,7 +104,7 @@ std::optional<pack> device::try_get() {
     return queue.tryPop();
 }
 
-std::vector<pack> device::get_some(uint n) {
+std::vector<pack> device::get_some(size_t n) {
     return queue.popSome(n);
 }
 

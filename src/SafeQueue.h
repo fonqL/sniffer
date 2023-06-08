@@ -80,8 +80,8 @@ public:
     }
 
     // 有点扭曲但也不太扭曲的接口
-    std::vector<T> popSome(unsigned n) {
-        capacity_t ret_sz = std::min((capacity_t)n, size);
+    std::vector<T> popSome(size_t n) {
+        capacity_t ret_sz = std::min(n, size);
         std::vector<T> ret;
         {
             std::scoped_lock lock{mtx};
