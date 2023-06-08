@@ -29,8 +29,10 @@ void MainWindow::pushRow(size_t i, const pack& x) {
             return {p->srcip(), p->dstip()};
         } else if (auto p = x.parsed.get<arp_packet>()) {
             return {p->srcip(), p->dstip()};
+        } else {
+            auto& q = x.parsed.at<eth_header>();
+            return {q.srcmac(), q.dstmac()};
         }
-        return {"unknown", "unknown"};
     }();
     this->model->appendRow({
         QString::number(i + 1),
@@ -169,7 +171,7 @@ MainWindow::MainWindow(QWidget* parent)
       device_choose(0),
       timer(new QTimer(this)),
       time_record(QDateTime::fromSecsSinceEpoch(0)),
-      model(new CustomItemModel(this, {"序号", "时间", "协议", "长度", "源ip", "目的ip"})),
+      model(new CustomItemModel(this, {"序号", "时间", "协议", "长度", "源", "目的"})),
       tr_model(new QStandardItemModel(this)),
       show_filter(std::make_unique<ExprAST>()) {
     ui->setupUi(this);
@@ -287,6 +289,7 @@ void MainWindow::reset() {
     this->shows.clear();
     this->packets.clear();
     this->model->clear();
+    setMaxPage(0);
     // custom model不用重新setHorizontalHeaderLabels
 
     this->count.clear();

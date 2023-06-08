@@ -10,7 +10,7 @@ private:
     size_t sz;
 
 private:
-    size_t inc(size_t x, size_t n) const {
+    [[nodiscard]] size_t inc(size_t x, size_t n) const {
         x += n;
         if (x >= circleBuffer.size())
             x -= circleBuffer.size();
@@ -31,7 +31,7 @@ public:
     void push_back(std::vector<QString>&& x) {
         if (sz >= circleBuffer.size()) {
             decltype(circleBuffer) tmp(circleBuffer.size() * 2);
-            for (size_t i = 0, j = header, k = 0; k < sz; ++i, inc(j, 1), ++k) {
+            for (size_t i = 0, j = header, k = 0; k < sz; ++i, j = inc(j, 1), ++k) {
                 tmp[i] = std::move(circleBuffer[j]);
             }
             circleBuffer = std::move(tmp);
