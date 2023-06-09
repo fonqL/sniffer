@@ -29,6 +29,19 @@ filter做好了！大成功！！
 
 ## 性能优化
 
-火焰图发现QDateTime + std::chrono::milliseconds 慢的要死。。居然跟parse_packet一个速度。。
+[](image/1.png)
+局部火焰图，总体火焰图没发现MWcapture, 多线程parse居然比MWcapture更瓶颈
+QDateTime + std::chrono::milliseconds 慢的要死。。居然跟parse_packet一个速度。。
 parse_packet(parse_datalink)有一半慢在packet.add上，完全是因为扩容时的内存分配与回收。。离谱，暂时不理
+
+改进后：
+[](image/2.png)
+线程分析看到在1s内突发流量在10000个包以下时，parse多线程cpu占比不超过0.5%，在火焰图上已经找不到
+主线程占比99.5%，MW::capture()占比1/7，主要耗在：qt界面上，vector的构造/析构，序列化存档。
+[](image/3.png)
+但序列化存档完全不是瓶颈，只占MW::capture()的1/14，几乎和vector析构差不多效率，赢麻了
+
+更高流量冲击下：10000个包/s以上，3M/s吧大概，主线程占比更加离谱达到100%，解析报文线程忽略不计了
+MW::capture()占总比达到27%。（有可能挂后台了所以qt渲染轻松了一点？
+MW::capture()分布还是那样，锅都在qt
 
