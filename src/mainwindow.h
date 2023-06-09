@@ -21,7 +21,6 @@ public:
 
 private:
     Ui::MainWindow* ui;
-    // todo 解决析构问题
     // 挂到qt对象树上，不用析构
     // 因为无法在qtdesign里往statusbar添加部件所以必须在这添加。。
     class QLabel* textEdit;
@@ -49,7 +48,7 @@ private:
     //i均为底层packets中的下标
     void pushRow(size_t i);
     void pushRow(size_t i, const pack& x);
-    void showDetails(int i);
+    void showDetails(size_t i);
 
     void handleShow(const pack& x);
 

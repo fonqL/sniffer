@@ -12,7 +12,7 @@ charts::charts(QWidget* parent)
     ui->horizontalScrollBar->setVisible(false);
 
     // ipv4&ipv6
-    connect(ui->pushButton, &QPushButton::clicked, this, [=]() {
+    connect(ui->pushButton, &QPushButton::clicked, this, [this]() {
         chart.get()->removeAllSeries();
         for (int i = 0; i < chart.get()->axes().size(); i++) {
             chart.get()->removeAxis(chart.get()->axes().at(i));
@@ -28,17 +28,18 @@ charts::charts(QWidget* parent)
 
         QBarSet* ipv4_set = new QBarSet("ipv4");
         QBarSet* ipv6_set = new QBarSet("ipv6");
-        int max = this->count_t.back().ipv4;
+        size_t max = this->count_t.back().ipv4;
         if (this->count_t.back().ipv6 > max) {
             max = this->count_t.back().ipv6;
         }
-        for (int i = 0; i < this->count_t.size(); i++) {
+        for (size_t i = 0; i < this->count_t.size(); i++) {
             *ipv4_set << this->count_t[i].ipv4;
             *ipv6_set << this->count_t[i].ipv6;
             axisX->append(this->count_t[i].time.toString("hh:mm:ss"));
         }
 
-        axisX->setRange(axisX->at(this->count_t.size() > 5 ? this->count_t.size() - 5 : 0), axisX->at(this->count_t.size() - 1));
+        axisX->setRange(axisX->at(int(this->count_t.size() > 5 ? this->count_t.size() - 5 : 0)),
+                        axisX->at(int(this->count_t.size() - 1)));
         axisY->setRange(0, max);
         axisY->setLabelFormat("%d");
 
@@ -66,11 +67,11 @@ charts::charts(QWidget* parent)
         QChartView* cv = new QChartView(chart.get());
         cv->setRenderHint(QPainter::Antialiasing);
 
-        ui->horizontalScrollBar->setRange(0, this->count_t.size() > 5 ? this->count_t.size() - 5 : 0);
+        ui->horizontalScrollBar->setRange(0, int(this->count_t.size() > 5 ? this->count_t.size() - 5 : 0));
         ui->horizontalScrollBar->setPageStep(1);
-        ui->horizontalScrollBar->setValue(this->count_t.size() > 5 ? this->count_t.size() - 5 : 0);
+        ui->horizontalScrollBar->setValue(int(this->count_t.size() > 5 ? this->count_t.size() - 5 : 0));
 
-        connect(ui->horizontalScrollBar, &QScrollBar::valueChanged, this, [=]() {
+        connect(ui->horizontalScrollBar, &QScrollBar::valueChanged, this, [this, axisX]() {
             axisX->setRange(axisX->at(ui->horizontalScrollBar->value()), axisX->at(ui->horizontalScrollBar->value() + 4));
         });
 
@@ -85,7 +86,7 @@ charts::charts(QWidget* parent)
         ui->gridLayout->addWidget(cv, 0, 1);
     });
 
-    connect(ui->pushButton_2, &QPushButton::clicked, this, [=]() {
+    connect(ui->pushButton_2, &QPushButton::clicked, this, [this]() {
         chart.get()->removeAllSeries();
         for (int i = 0; i < chart.get()->axes().size(); i++) {
             chart.get()->removeAxis(chart.get()->axes().at(i));
@@ -145,7 +146,7 @@ charts::charts(QWidget* parent)
     });
 
     //dns占比走势
-    connect(ui->pushButton_3, &QPushButton::clicked, this, [=]() {
+    connect(ui->pushButton_3, &QPushButton::clicked, this, [this]() {
         chart.get()->removeAllSeries();
         for (int i = 0; i < chart.get()->axes().size(); i++) {
             chart.get()->removeAxis(chart.get()->axes().at(i));
@@ -170,14 +171,14 @@ charts::charts(QWidget* parent)
 
         series1->setMarkerSize(5);
 
-        for (int i = 0; i < this->count_t.size(); i++) {
+        for (size_t i = 0; i < this->count_t.size(); i++) {
             double dns = this->count_t[i].dns;
             double oth = this->count_t[i].other_a;
             series->append(i, (dns / (dns + oth)) * 100);
             series1->append(i, (dns / (dns + oth)) * 100);
         }
 
-        double max = 1.0 * this->count_t.back().dns / (this->count_t.back().dns + this->count_t.back().other_a) * 100;
+        double max = (double)this->count_t.back().dns / this->count_t.back().dns + this->count_t.back().other_a * 100;
         axisY->setRange(0.0, max);
         axisY->setLabelFormat("%.2lf%");
 
@@ -192,9 +193,9 @@ charts::charts(QWidget* parent)
         QLabel* label = new QLabel(this);
         label->hide();
 
-        connect(series1, &QLineSeries::hovered, this, [=](const QPointF& point, bool state) {
+        connect(series1, &QLineSeries::hovered, this, [=, this](const QPointF& point, bool state) {
             if (state) {
-                int i = point.x();
+                uint i = point.x();
                 double dns = this->count_t[i].dns;
                 double oth = this->count_t[i].other_a;
                 label->setText(this->count_t[i].time.toString("hh:mm:ss") + QString::asprintf(": %.2lf%", (dns / (dns + oth)) * 100));

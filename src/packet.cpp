@@ -2,16 +2,16 @@
 #include <WinSock2.h>
 
 // 解析报文相关
-
+// ..挺迷惑的。。居然真的会收到不符合协议约定的包崩溃程序。。
 void packet::parse_unknown(const uint8_t* begin, const uint8_t* end, packet& pkt) {
-    [[unlikely]] if (begin >= end + 1)
+    [[unlikely]] if (begin > end)
         return;
     pkt.add(blob{static_cast<uint16_t>(end - begin)}, begin, end);
 }
 
 template<>
 void packet::parse_application<dns_packet>(const uint8_t* begin, const uint8_t* end, packet& pkt) {
-    [[unlikely]] if (begin + sizeof(dns_packet_base) >= end + 1)
+    [[unlikely]] if (begin + sizeof(dns_packet_base) > end)
         return;
     auto& dns = pkt.add(dns_packet{}, begin + sizeof(dns_packet_base), end);
     (dns_packet_base&)dns = *(dns_packet_base*)begin;
@@ -27,14 +27,14 @@ void packet::parse_application<dns_packet>(const uint8_t* begin, const uint8_t* 
     dns.authority_rrs = ntohs(dns.authority_rrs);
     dns.additional_rrs = ntohs(dns.additional_rrs);
 
-    dns.len = end - (begin + sizeof(dns_packet_base));
+    dns.len = uint16_t(end - (begin + sizeof(dns_packet_base)));
 }
 
 template<>
 void packet::parse_transport<tcp_header>(const uint8_t* begin, const uint8_t* end, packet& pkt) {
-    [[unlikely]] if (begin + sizeof(tcp_header_base) >= end + 1)
+    [[unlikely]] if (begin + sizeof(tcp_header_base) > end)
         return;
-    auto& tcp = pkt.add(tcp_header{});
+    tcp_header tcp;
     (tcp_header_base&)tcp = *(tcp_header_base*)begin;
     tcp.src = ntohs(tcp.src);
     tcp.dst = ntohs(tcp.dst);
@@ -44,9 +44,12 @@ void packet::parse_transport<tcp_header>(const uint8_t* begin, const uint8_t* en
     tcp.checksum = ntohs(tcp.checksum);
     tcp.urgent_ptr = ntohs(tcp.urgent_ptr);
 
-    if (begin + tcp.header_len * 4 >= end + 1)
+    // todo 这里其实也不对。。构造出错误包应该要抛异常的。。
+    [[unlikely]] if (sizeof(tcp_header_base) / 4 > tcp.header_len || begin + tcp.header_len * 4 > end)
         return;
     std::copy(begin + sizeof(tcp_header_base), begin + tcp.header_len * 4, tcp.op);
+
+    pkt.add(tcp_header{}) = tcp;
 
     begin += tcp.header_len * 4;
     if (tcp.is_dns()) {
@@ -58,7 +61,7 @@ void packet::parse_transport<tcp_header>(const uint8_t* begin, const uint8_t* en
 
 template<>
 void packet::parse_transport<udp_header>(const uint8_t* begin, const uint8_t* end, packet& pkt) {
-    [[unlikely]] if (begin + sizeof(begin) >= end + 1)
+    [[unlikely]] if (begin + sizeof(begin) > end)
         return;
     auto& udp = pkt.add(*(udp_header*)begin); //reinterpret+const
 
@@ -77,19 +80,19 @@ void packet::parse_transport<udp_header>(const uint8_t* begin, const uint8_t* en
 
 template<>
 void packet::parse_transport<icmp_packet>(const uint8_t* begin, const uint8_t* end, packet& pkt) {
-    [[unlikely]] if (begin + sizeof(icmp_packet_base) >= end + 1)
+    [[unlikely]] if (begin + sizeof(icmp_packet_base) > end)
         return;
     auto& icmp = pkt.add(icmp_packet{}, begin + sizeof(icmp_packet_base), end);
     (icmp_packet_base&)icmp = *(icmp_packet_base*)begin;
     icmp.checksum = ntohs(icmp.checksum);
     icmp.field = ntohl(icmp.field);
 
-    icmp.len = end - (begin + sizeof(icmp_packet_base));
+    icmp.len = uint16_t(end - (begin + sizeof(icmp_packet_base)));
 }
 
 template<>
 void packet::parse_network<ipv6_header>(const uint8_t* begin, const uint8_t* end, packet& pkt) {
-    [[unlikely]] if (begin + sizeof(ipv6_header) >= end + 1)
+    [[unlikely]] if (begin + sizeof(ipv6_header) > end)
         return;
     auto& ip6 = pkt.add(*(ipv6_header*)begin); //reinterpret+const
 
@@ -121,23 +124,25 @@ void packet::parse_network<ipv6_header>(const uint8_t* begin, const uint8_t* end
 
 template<>
 void packet::parse_network<ipv4_header>(const uint8_t* begin, const uint8_t* end, packet& pkt) {
-    [[unlikely]] if (begin + sizeof(ipv4_header_base) >= end + 1)
+    [[unlikely]] if (begin + sizeof(ipv4_header_base) > end)
         return;
-    auto& ip = pkt.add(ipv4_header{});
+    ipv4_header ip;
     (ipv4_header_base&)ip = *(ipv4_header_base*)begin;
     ip.len = ntohs(ip.len);
     ip.id = ntohs(ip.id);
 
     uint16_t tmp = *(&ip.id + 1);
     tmp = ntohs(tmp);
-    ip.df = (tmp & (1 << 14)) >> 14;
-    ip.mf = (tmp & (1 << 13)) >> 13;
+    ip.df = (tmp & (1u << 14)) >> 14;
+    ip.mf = (tmp & (1u << 13)) >> 13;
     ip.offset = tmp;
 
     ip.checksum = ntohs(ip.checksum);
-    if (begin + ip.header_len * 4 >= end + 1)
+    [[unlikely]] if (sizeof(ipv4_header_base) / 4 > ip.header_len || begin + ip.header_len * 4 > end)
         return;
     std::copy(begin + sizeof(ipv4_header_base), begin + ip.header_len * 4, ip.op);
+
+    pkt.add(ipv4_header{}) = ip;
 
     begin += ip.header_len * 4;
     auto ip_proto = ip.proto;
@@ -159,7 +164,7 @@ void packet::parse_network<ipv4_header>(const uint8_t* begin, const uint8_t* end
 
 template<>
 void packet::parse_network<arp_packet>(const uint8_t* begin, const uint8_t* end, packet& pkt) {
-    [[unlikely]] if (begin + sizeof(arp_packet) >= end + 1)
+    [[unlikely]] if (begin + sizeof(arp_packet) > end)
         return;
     auto& arp = pkt.add(*(arp_packet*)begin); // reinterpret+const
     arp.hardware_type = ntohs(arp.hardware_type);
@@ -169,7 +174,7 @@ void packet::parse_network<arp_packet>(const uint8_t* begin, const uint8_t* end,
 }
 
 void packet::parse_datalink(const uint8_t* begin, const uint8_t* end, packet& pkt) {
-    [[unlikely]] if (begin + sizeof(eth_header) >= end + 1)
+    [[unlikely]] if (begin + sizeof(eth_header) > end)
         return;
     auto& eth = pkt.add(*(eth_header*)begin);
     eth.len = ntohs(eth.len);

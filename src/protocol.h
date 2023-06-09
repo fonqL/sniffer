@@ -99,12 +99,12 @@ struct arp_packet {
     QString srcip() const {
         char buf[20] = {0};
         inet_ntop(AF_INET, src_ip.data(), buf, sizeof(buf));
-        return QString::fromLatin1(buf, strlen(buf));
+        return QString::fromLatin1(buf, (int)strlen(buf));
     }
     QString dstip() const {
         char buf[20] = {0};
         inet_ntop(AF_INET, dst_ip.data(), buf, sizeof(buf));
-        return QString::fromLatin1(buf, strlen(buf));
+        return QString::fromLatin1(buf, (int)strlen(buf));
     }
     QString op_str() const {
         switch (op) {
@@ -153,12 +153,12 @@ struct ipv4_header_base {
     QString srcip() const {
         char buf[20] = {0};
         inet_ntop(AF_INET, src.data(), buf, sizeof(buf));
-        return QString::fromLatin1(buf, strlen(buf));
+        return QString::fromLatin1(buf, (int)strlen(buf));
     }
     QString dstip() const {
         char buf[20] = {0};
         inet_ntop(AF_INET, dst.data(), buf, sizeof(buf));
-        return QString::fromLatin1(buf, strlen(buf));
+        return QString::fromLatin1(buf, (int)strlen(buf));
     }
     STR_DEC(len)
     QString headerlen_str() const { return QString::number(header_len * 4); }
@@ -198,12 +198,12 @@ struct ipv6_header {
     QString srcip() const {
         char buf[50] = {0};
         inet_ntop(AF_INET6, src.data(), buf, sizeof(buf));
-        return QString::fromLatin1(buf, strlen(buf));
+        return QString::fromLatin1(buf, (int)strlen(buf));
     }
     QString dstip() const {
         char buf[50] = {0};
         inet_ntop(AF_INET6, dst.data(), buf, sizeof(buf));
-        return QString::fromLatin1(buf, strlen(buf));
+        return QString::fromLatin1(buf, (int)strlen(buf));
     }
     STR_DEC(payload_len)
     STR_HEX(traffic_class, 2, hx)

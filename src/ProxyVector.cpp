@@ -61,7 +61,7 @@ void ProxyVector::push_back(pack&& pkt) {
 }
 
 const pack& ProxyVector::operator[](size_t i) {
-    [[unlikely]] if (i < 0 || sz <= i)
+    [[unlikely]] if (sz <= i)
         throw std::out_of_range("invalid visit to ProxyVector");
 
     size_t writeOffset = sz - packets.size();

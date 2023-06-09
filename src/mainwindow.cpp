@@ -23,16 +23,14 @@ void MainWindow::pushRow(size_t i, const pack& x) {
         this->model->removeOneRow();
     }
     auto [src, dst] = [&x]() -> std::pair<QString, QString> {
-        if (auto p = x.parsed.get<ipv4_header>()) {
+        if (auto p = x.parsed.get<ipv4_header>())
             return {p->srcip(), p->dstip()};
-        } else if (auto p = x.parsed.get<ipv6_header>()) {
+        if (auto p = x.parsed.get<ipv6_header>())
             return {p->srcip(), p->dstip()};
-        } else if (auto p = x.parsed.get<arp_packet>()) {
+        if (auto p = x.parsed.get<arp_packet>())
             return {p->srcip(), p->dstip()};
-        } else {
-            auto& q = x.parsed.at<eth_header>();
-            return {q.srcmac(), q.dstmac()};
-        }
+        auto& p = x.parsed.at<eth_header>();
+        return {p.srcmac(), p.dstmac()};
     }();
     this->model->appendRow({
         QString::number(i + 1),
@@ -45,7 +43,7 @@ void MainWindow::pushRow(size_t i, const pack& x) {
 }
 
 // i是底层packets的索引，从0开始
-void MainWindow::showDetails(int i) {
+void MainWindow::showDetails(size_t i) {
     auto& pk = this->packets[i];
 
     ui->data->setText(pk.raw_str());
@@ -268,7 +266,7 @@ void MainWindow::applyShowFilter() {
     setMaxPage(newmax);
     if (shows.empty())
         return;
-    ui->spinBox->setValue(newmax);
+    ui->spinBox->setValue((int)newmax);
     jump();
     ui->tableView->scrollToBottom();
 }
@@ -295,7 +293,6 @@ void MainWindow::reset() {
     this->count_t.clear();
     this->textEdit->clear();
     ui->data->clear();
-    // todo qt对象好像是有特殊的析构方法？clear应该也可？
     if (tr_model != nullptr)
         this->tr_model->clear();
 }
@@ -336,14 +333,14 @@ void MainWindow::stopCapture() {
     capture();
     if (!packets.empty())
         genSample(packets.back().time);
-    int max = int((this->shows.size() + MAXSHOW - 1) / MAXSHOW);
+    uint max = uint((this->shows.size() + MAXSHOW - 1) / MAXSHOW);
     setMaxPage(max);
 }
 
 // idx是底层数组索引，从0开始
 void MainWindow::updStat(size_t idx, const pack& x) {
     // 更新count
-    x.parsed.traverse([this, idx, depth = 0]<typename T>(const T& proto) mutable {
+    x.parsed.traverse([this, idx, depth = 0]<typename T>(const T&) mutable {
         ++depth;
         if constexpr (std::is_same_v<T, eth_header>) {
             ; //none
@@ -401,15 +398,16 @@ void MainWindow::genSample(QDateTime t) {
 void MainWindow::handleShow(const pack& pkt) {
     shows.push_back(packets.size()); // 预判下标，与capture()其实是耦合的，有点危险
 
-    uint oldmax = ui->spinBox->maximum();
+    uint oldmax = (uint)ui->spinBox->maximum();
 
     // 更新分页数目=上取整(所有捕获/单位页展示)。上取整公式有-1，新增此包后size+1，抵消为0
     uint newmax = uint((this->shows.size() + MAXSHOW) / MAXSHOW);
-    setMaxPage(newmax); // setmaxpage必须在setvalue前
+    if (newmax != oldmax)
+        setMaxPage(newmax); // setmaxpage必须在setvalue前
 
-    if (ui->spinBox->value() == oldmax || oldmax == 0) {
-        if (ui->radioButton_2->isChecked()) { // trace
-            ui->spinBox->setValue(newmax);    // 设置value不会有动作，只有按钮才会触发
+    if ((uint)ui->spinBox->value() == oldmax || oldmax == 0) {
+        if (ui->radioButton_2->isChecked()) {                         // trace
+            if (newmax != oldmax) ui->spinBox->setValue((int)newmax); // 设置value不会有动作，只有按钮才会触发
             pushRow(packets.size(), pkt);
         } else { // not trace
             pushRow(packets.size(), pkt);
@@ -449,7 +447,7 @@ void MainWindow::setMaxPage(uint m) {
         ui->spinBox->setRange(0, 0);
         ui->label_2->setText("共0页");
     } else {
-        ui->spinBox->setRange(1, m);
+        ui->spinBox->setRange(1, (int)m);
         ui->label_2->setText(QString::asprintf("共%u页", m));
     }
 }

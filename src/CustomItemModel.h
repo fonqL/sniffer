@@ -66,43 +66,43 @@ public:
           m_header(std::move(header)) {
     }
 
-    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override {
+    QVariant headerData(int section, Qt::Orientation orientation, int role) const override {
         if (role != Qt::DisplayRole)
             return {};
         if (orientation == Qt::Vertical)
             return section + 1;
         if (orientation == Qt::Horizontal)
-            return m_header[section];
+            return m_header[(uint)section];
         return {};
     }
 
     QModelIndex index(int row, int column,
-                      const QModelIndex& parent = QModelIndex()) const override {
-        if (row >= m_dataVector.size() || row < 0
+                      const QModelIndex& = {}) const override {
+        if (row >= (int)m_dataVector.size() || row < 0
             || column >= m_header.size() || column < 0)
             return {};
         return createIndex(row, column);
     }
 
-    QModelIndex parent(const QModelIndex& index) const override {
+    QModelIndex parent(const QModelIndex&) const override {
         return {};
     }
 
-    int rowCount(const QModelIndex& parent = QModelIndex()) const override {
+    int rowCount(const QModelIndex& = {}) const override {
         return static_cast<int>(m_dataVector.size());
     }
 
-    int columnCount(const QModelIndex& parent = QModelIndex()) const override {
+    int columnCount(const QModelIndex&) const override {
         return static_cast<int>(m_header.size());
     }
 
     QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override {
         if (!index.isValid()
-            || index.row() >= m_dataVector.size() || index.row() < 0
+            || index.row() >= (int)m_dataVector.size() || index.row() < 0
             || index.column() >= m_header.size() || index.column() < 0)
             return {};
         if (role == Qt::DisplayRole)
-            return m_dataVector[index.row()][index.column()];
+            return m_dataVector[(uint)index.row()][(uint)index.column()];
         else
             return {};
     }

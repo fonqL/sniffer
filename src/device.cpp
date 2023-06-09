@@ -78,7 +78,7 @@ device::get_packet() {
         if (e < 0) break;
         if (e == 0) continue;
         // 备份抓到的包，用于保存操作
-        pcap_dump((u_char*)file, header, data);
+        pcap_dump((u_char*)file, header, data); // reinterpret_cast，是合理运用，1. 符合类型别名规则 2. 是官方文档使用例
         return {header, data};
     }
     return {nullptr, nullptr};
@@ -161,8 +161,8 @@ device device_list::open(uint i) const {
         dev = dev->next;
     }
     u_int netmask = dev->addresses != nullptr
-                        ? (reinterpret_cast<sockaddr_in*>(dev->addresses->netmask))
-                              ->sin_addr.S_un.S_addr
+                        ? std::bit_cast<sockaddr_in>(*dev->addresses->netmask)
+                              .sin_addr.S_un.S_addr
                         : 0xffffff; //fallback: C类地址
     return {dev->name, netmask};
 }

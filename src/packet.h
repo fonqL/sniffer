@@ -9,6 +9,9 @@
 class QDataStream;
 
 // 异质容器
+// todo 用std::bitcast消去c式强转与reinterpret_cast
+// 突然意识到这种异质容器不是一般的危险。。内存地址不对齐。。
+// msvc没有警告c式转换的编译选项。。用clang编译一次好了。。
 class packet {
 private:
     template<class T>
@@ -22,7 +25,7 @@ private:
         uint8_t* end = nullptr;
 
         void deallocate() {
-            Alloc<uint8_t>::deallocate(begin, end - begin);
+            Alloc<uint8_t>::deallocate(begin, size_t(end - begin));
         }
 
         void allocate(size_t size) {
@@ -112,9 +115,9 @@ public:
 private:
     // 扩容
     void expand(size_t atlease_r) {
-        size_t size = r_end - l_end;
-        size_t lsize = mid - l_end;
-        size_t rsize = r_end - mid;
+        size_t size = size_t(r_end - l_end);
+        size_t lsize = size_t(mid - l_end);
+        size_t rsize = size_t(r_end - mid);
 
         _impl newimpl;
         newimpl.allocate(2 * (std::max(lsize, sizeof(ltype)) + std::max(rsize, atlease_r)));
@@ -138,14 +141,14 @@ private:
     }
 
     template<typename T>
-    auto add_impl(T&& a) -> std::remove_reference_t<T>& {
+    void add_impl(void* a) {
         l_end -= sizeof(ltype);
         *reinterpret_cast<ltype*>(l_end) = {typeid(T), r_end - mid};
 
         //
         auto* ret = reinterpret_cast<std::remove_reference_t<T>*>(r_end);
 
-        memcpy(r_end, reinterpret_cast<uint8_t*>(&a), sizeof(T));
+        memcpy(r_end, a, sizeof(T));
         r_end += sizeof(T);
 
         return *ret;
@@ -154,22 +157,22 @@ private:
 public:
     // 添加定长头
     template<typename T>
-    auto add(T&& a) -> std::remove_reference_t<T>& {
+    void add(void* a) {
         static_assert(std::is_trivial_v<std::remove_reference_t<T>>);
 
         ensure_capacity(sizeof(T));
 
-        return add_impl(std::forward<T>(a));
+        return add_impl<T>(a);
     }
 
     // 添加定长头+最后的变长数据
     template<typename T>
-    auto add(T&& a, const uint8_t* const begin, const uint8_t* const end) -> std::remove_reference_t<T>& {
+    void add(void* a, const uint8_t* const begin, const uint8_t* const end) {
         static_assert(std::is_trivial_v<std::remove_reference_t<T>>);
-        size_t append_len = end - begin;
+        size_t append_len = size_t(end - begin);
 
         ensure_capacity(sizeof(T) + append_len);
-        auto& ret = add_impl(std::forward<T>(a));
+        auto& ret = add_impl<T>(a);
 
         memcpy(r_end, begin, append_len);
         r_end += append_len;
@@ -271,8 +274,8 @@ struct pack {
     QString time_str() const { return time.toString("MM/dd hh:mm:ss.zzz"); }
     QString raw_str() const {
         std::vector<char> tmpbuf(raw.size() * 5, '\0');
-        int offset = 0;
-        for (int i = 0; i < raw.size(); i++) {
+        uint offset = 0;
+        for (size_t i = 0; i < raw.size(); i++) {
             offset += sprintf(tmpbuf.data() + offset, "%02hhx ", raw[i]);
             if ((i + 1) % 16 == 0)
                 tmpbuf[offset++] = '\n';

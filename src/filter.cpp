@@ -107,7 +107,7 @@ public:
     T scan_type() {
         skipspace();
         verify(last_char.isNumber());
-        if constexpr (std::is_same_v<T, uint>) {
+        if constexpr (std::is_unsigned_v<T>) {
             QString s;
             do {
                 s += last_char;
@@ -116,8 +116,8 @@ public:
 
             bool ok;
             uint n = s.toUInt(&ok);
-            verify(ok);
-            return n;
+            verify(ok && uint((T)n) == n);
+            return (T)n;
         } else if constexpr (std::is_same_v<T, IPv4Addr>) {
             std::string s;
             do {
@@ -315,17 +315,16 @@ std::unique_ptr<ExprAST> mkPF_match(tok_type op, Getter<T, R>* func, R&& val, to
 class parser {
 private:
     //
-#define FIELD_CASE(field)                                        \
-    {                                                            \
-        static const QString field_name = #field;                \
-        if (field_str == field_name) {                           \
-            using rawR = decltype(std::declval<T>().field);      \
-            using R = if_t<std::is_enum_v<rawR>, uint, rawR>;    \
-            using ParseR = if_t<std::is_integral_v<R>, uint, R>; \
-            return ::mkPF_match<T, R>(                           \
-                op, +[](const T& x) -> R { return x.field; },    \
-                lex.scan_type<ParseR>(), ValidOps);              \
-        }                                                        \
+#define FIELD_CASE(field)                                     \
+    {                                                         \
+        static const QString field_name = #field;             \
+        if (field_str == field_name) {                        \
+            using rawR = decltype(std::declval<T>().field);   \
+            using R = if_t<std::is_enum_v<rawR>, uint, rawR>; \
+            return ::mkPF_match<T, R>(                        \
+                op, +[](const T& x) -> R { return x.field; }, \
+                lex.scan_type<R>(), ValidOps);                \
+        }                                                     \
     }
 
 #define PROTO_MATCH \
