@@ -49,7 +49,7 @@ vector的无参构造因为debug版所以真的慢。。
 MW::capture()占总比达到27%。（有可能挂后台了所以qt渲染轻松了一点？
 MW::capture()分布还是那样，锅都在qt
 
-**removeOneRow单次复调太多次了。。能否转为批量处理。。**
+**removeOneRow单次复调太多次了。。用RAII的东西包装成批量操作之类的吧。。**
 
 加个判断，改善handleShow里的setMaxPage耗时
 
