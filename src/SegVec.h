@@ -5,7 +5,7 @@
 
 // // 分块vector，以免发生过大内存分配
 // // 要减少扩容时的开销。。强化实时性。。
-// // 怀疑必要性。。
+// // 怀疑必要性。。但未做过长时间占用大量内存时的性能测试，所以保留
 // class ProxyIntVector {
 //     size_t sz;
 //     std::vector<std::vector<int>> count;
