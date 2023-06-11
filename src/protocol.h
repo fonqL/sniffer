@@ -28,11 +28,8 @@
 #define REFLECT_NAME(str) \
     inline static const QString name = str;
 
-struct blob {
-    uint16_t len;
-    const uint8_t* data() const {
-        return reinterpret_cast<const uint8_t*>(this + 1);
-    };
+struct blob : std::vector<uint8_t> {
+    using std::vector<uint8_t>::vector;
 };
 
 using MacAddr = std::array<uint8_t, 6>;
@@ -97,14 +94,14 @@ struct arp_packet {
     IPv4Addr dst_ip;
 
     QString srcip() const {
-        char buf[20] = {0};
+        char buf[16] = {0};
         inet_ntop(AF_INET, src_ip.data(), buf, sizeof(buf));
-        return QString::fromLatin1(buf, (int)strlen(buf));
+        return QString::fromLatin1(buf, sizeof(buf));
     }
     QString dstip() const {
-        char buf[20] = {0};
+        char buf[16] = {0};
         inet_ntop(AF_INET, dst_ip.data(), buf, sizeof(buf));
-        return QString::fromLatin1(buf, (int)strlen(buf));
+        return QString::fromLatin1(buf, sizeof(buf));
     }
     QString op_str() const {
         switch (op) {
@@ -151,14 +148,14 @@ struct ipv4_header_base {
     IPv4Addr dst;
 
     QString srcip() const {
-        char buf[20] = {0};
+        char buf[16] = {0};
         inet_ntop(AF_INET, src.data(), buf, sizeof(buf));
-        return QString::fromLatin1(buf, (int)strlen(buf));
+        return QString::fromLatin1(buf, sizeof(buf));
     }
     QString dstip() const {
-        char buf[20] = {0};
+        char buf[16] = {0};
         inet_ntop(AF_INET, dst.data(), buf, sizeof(buf));
-        return QString::fromLatin1(buf, (int)strlen(buf));
+        return QString::fromLatin1(buf, sizeof(buf));
     }
     STR_DEC(len)
     QString headerlen_str() const { return QString::number(header_len * 4); }
@@ -196,14 +193,14 @@ struct ipv6_header {
     IPv6Addr dst;
 
     QString srcip() const {
-        char buf[50] = {0};
+        char buf[40] = {0};
         inet_ntop(AF_INET6, src.data(), buf, sizeof(buf));
-        return QString::fromLatin1(buf, (int)strlen(buf));
+        return QString::fromLatin1(buf, sizeof(buf));
     }
     QString dstip() const {
-        char buf[50] = {0};
+        char buf[40] = {0};
         inet_ntop(AF_INET6, dst.data(), buf, sizeof(buf));
-        return QString::fromLatin1(buf, (int)strlen(buf));
+        return QString::fromLatin1(buf, sizeof(buf));
     }
     STR_DEC(payload_len)
     STR_HEX(traffic_class, 2, hx)
@@ -312,10 +309,7 @@ struct icmp_packet_base {
 struct icmp_packet : icmp_packet_base {
     REFLECT_NAME("icmp")
 
-    uint16_t len;
-    const uint8_t* data() const {
-        return reinterpret_cast<const uint8_t*>(this + 1);
-    };
+    blob data;
 };
 
 struct tcp_header_base {
@@ -473,10 +467,7 @@ struct dns_packet_base {
 struct dns_packet : dns_packet_base {
     REFLECT_NAME("dns")
 
-    uint16_t len;
-    const uint8_t* data() const {
-        return reinterpret_cast<const uint8_t*>(this + 1);
-    };
+    blob data;
 };
 
 static_assert(sizeof(eth_header) == 14); //验证
