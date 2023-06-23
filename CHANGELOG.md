@@ -65,6 +65,7 @@ MW::capture占主线程11%，性能分布还是差不多那样
 
 ## release性能
 极高压，突然到了六位数那种
+cpu最高到达30%
 MW::capture和device::start_capture均可见，而且比例为28:30
 程序总量为365，算下来两者差不多都占了8%
 

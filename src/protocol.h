@@ -137,10 +137,10 @@ struct ipv4_header_base {
     uint8_t ds; //旧称tos
     uint16_t len;
     uint16_t id;
-    uint16_t : 1;
-    uint16_t df : 1;
-    uint16_t mf : 1;
     uint16_t offset : 13;
+    uint16_t mf : 1;
+    uint16_t df : 1;
+    uint16_t : 1;
     uint8_t ttl;
     proto_t proto;
     uint16_t checksum;
@@ -183,9 +183,9 @@ struct ipv6_header {
         // IPv6 = 41,
     };
 
-    uint32_t version : 4;
-    uint32_t traffic_class : 8;
     uint32_t flow_label : 20;
+    uint32_t traffic_class : 8;
+    uint32_t version : 4;
     uint16_t payload_len;
     header_t next_header;
     uint8_t hop_limit;

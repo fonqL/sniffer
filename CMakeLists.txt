@@ -4,11 +4,11 @@ project(sniffer VERSION 0.1 LANGUAGES CXX)
 
 add_compile_definitions(NOMINMAX _CRT_SECURE_NO_WARNINGS _WINSOCKAPI_)
 
-#cmake msvc并行编译
-cmake_host_system_information(RESULT CPU_NUMBER_OF_LOGICAL_CORES QUERY NUMBER_OF_LOGICAL_CORES)
-add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP${CPU_NUMBER_OF_LOGICAL_CORES}>)
 
 if(MSVC)
+    #cmake msvc并行编译
+    cmake_host_system_information(RESULT CPU_NUMBER_OF_LOGICAL_CORES QUERY NUMBER_OF_LOGICAL_CORES)
+    add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/MP${CPU_NUMBER_OF_LOGICAL_CORES}>)
     add_compile_options(/utf-8 /W4)
 endif()
 
