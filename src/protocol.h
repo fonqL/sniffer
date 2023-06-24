@@ -34,7 +34,7 @@ struct blob : std::vector<uint8_t> {
 
 using MacAddr = std::array<uint8_t, 6>;
 using IPv4Addr = std::array<uint8_t, 4>;
-using IPv6Addr = std::array<uint16_t, 8>;
+using IPv6Addr = std::array<uint8_t, 16>;
 
 // hack实现，因为c数组太难用了。。几乎没有值特征。。
 static_assert(std::is_standard_layout_v<MacAddr>);
