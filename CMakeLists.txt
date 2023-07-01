@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.5)
 
 project(sniffer VERSION 0.1 LANGUAGES CXX)
 
-add_compile_definitions(NOMINMAX _CRT_SECURE_NO_WARNINGS _WINSOCKAPI_)
+# 禁止min/max宏定义，消除sprintf_s警告，解决qt里windows.h与winsock2.h冲突
+add_compile_definitions(NOMINMAX _CRT_SECURE_NO_WARNINGS WIN32_LEAN_AND_MEAN)
 
 
 if(MSVC)
